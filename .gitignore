@@ -1,0 +1,72 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Next.js build and cache
+/.next/
+/out/
+/build
+/dist
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts.bak
+
+# Environment variables & secrets
+.env
+.env*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+secret.key
+*.key
+*.pem
+
+# Application storage & runtime media
+/storage/
+/uploads/
+/audio/
+/output/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+bun.log*
+
+# Testing & Coverage
+/coverage
+/test-results/
+/playwright-report/
+/blob-report/
+playwright/.cache/
+
+# OS metadata
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDEs and editors
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.sublime-workspace
+*.swp
+*.swo

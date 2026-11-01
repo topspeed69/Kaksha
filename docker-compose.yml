@@ -1,0 +1,38 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/app_db
+      LUMEN_ALLOW_LOCAL_PROVIDERS: "1"
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./storage:/app/storage
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: app_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  # Optional: local speech. Start with `docker compose --profile kokoro up`.
+  kokoro:
+    image: ghcr.io/remsky/kokoro-fastapi-cpu:latest
+    profiles: ["kokoro"]
+    ports:
+      - "8880:8880"
+
+volumes:
+  db-data:

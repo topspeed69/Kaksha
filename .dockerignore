@@ -1,0 +1,9 @@
+node_modules
+.next
+.env
+.env.local
+storage
+.git
+*.zip
+*.log
+web/e2e/screenshots
