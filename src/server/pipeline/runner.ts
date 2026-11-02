@@ -9,6 +9,7 @@ import { generateScene, speakable, type SourceChunk } from "./scenes";
 import { buildPlan, moduleCount } from "./planner";
 import { synthesizeSegment, ttsProviderFor } from "@/server/providers/tts";
 import { getSettings, hasModel, resolveSlot, type LumenSettings } from "@/server/settings";
+import { resolveLLM } from "@/server/providers/llm";
 import { imagesForChunks } from "@/server/ingest/pdf";
 import { reviewScene } from "./review";
 
@@ -235,7 +236,7 @@ export function sceneConcurrency(options: GenerationOptions, settings: LumenSett
   // "multiple agents" when only a deterministic local writer is running.
   if (content.provider === "ollama" || content.provider === "none" || !content.model) return 1;
   const requested = Number(settings.generation.max_parallel_scenes);
-  const configured = Number.isFinite(requested) ? Math.min(4, Math.max(2, Math.round(requested))) : 2;
+  const configured = Number.isFinite(requested) ? Math.min(6, Math.max(2, Math.round(requested))) : 3;
   const limit = Number(process.env.LUMEN_SCENE_CONCURRENCY);
   return Number.isFinite(limit) && limit > 0 ? Math.min(configured, Math.max(1, Math.floor(limit))) : configured;
 }
@@ -359,6 +360,35 @@ function findOutlineForSceneRow(
   return { modulePlan, outline: byTitle ?? modulePlan.scenes[0] };
 }
 
+/** Escalate after two failed attempts, when the course opted in and a distinct
+ * stronger model is configured. Repeating the same request on the same model is
+ * what produces endless retries. */
+function shouldEscalate(
+  options: { escalation_model?: boolean },
+  settings: LumenSettings,
+  attempts: number,
+): boolean {
+  if (attempts < 2 || options.escalation_model !== true) return false;
+  const escalation = resolveLLM(settings, "escalation");
+  const content = resolveLLM(settings, "content");
+  return (
+    escalation.available &&
+    (escalation.config.model !== content.config.model ||
+      escalation.slot !== content.slot)
+  );
+}
+
+/** Accumulate concrete failure reasons so the retry prompt can fix them in one pass. */
+function collectFailureIssues(
+  previous: string | null,
+  next: string,
+): string {
+  const known = previous ? previous.split("\n").filter(Boolean) : [];
+  const merged = [...known, ...next.split("\n").map((line) => line.trim()).filter(Boolean)];
+  const unique = [...new Set(merged.map((line) => line.slice(0, 240)))];
+  return unique.slice(-8).join("\n");
+}
+
 async function runGeneration(courseId: string): Promise<void> {
   const [row] = await db.select().from(courses).where(eq(courses.id, courseId)).limit(1);
   if (!row || !row.plan) return;
@@ -424,6 +454,19 @@ async function runGeneration(courseId: string): Promise<void> {
           outline,
           chunks,
           index: sceneRow.index,
+          ...(shouldEscalate(row.options, settings, sceneRow.attempts) ||
+              sceneRow.error?.startsWith("[escalation]")
+            ? { escalation: true }
+            : {}),
+          ...(sceneRow.error
+            ? {
+                failureIssues: sceneRow.error
+                  .split("\n")
+                  .map((line) => line.trim())
+                  .filter((line) => line && !line.startsWith("[escalation]"))
+                  .slice(0, 8),
+              }
+            : {}),
         };
         let outcome = await generateScene(context);
         // A model's first answer can contain malformed KaTeX or a bad plot.
@@ -446,9 +489,35 @@ async function runGeneration(courseId: string): Promise<void> {
           settings,
           modelReview: row.options.review_agent === true,
         });
+        // The visual agent's deterministic audit is part of the gate: a slide
+        // that overflows, collides, or explains a mechanism with no diagram is
+        // sent back for one revision even when the prose review passed.
+        const visualBlocking = (outcome.scene.visual?.findings ?? []).filter(
+          (finding) => finding.severity === "blocking",
+        );
+        if (visualBlocking.length && hasModel(resolveSlot(settings, "content").config)) {
+          review = {
+            ok: false,
+            summary: `The visual audit found ${visualBlocking.length} blocking layout defect${visualBlocking.length > 1 ? "s" : ""}.`,
+            findings: [
+              ...(review.ok ? [] : review.findings),
+              ...visualBlocking.map((finding) => ({
+                severity: "blocking" as const,
+                detail: `[visual/${finding.area}] ${finding.detail}`,
+                suggestion: finding.suggestion,
+              })),
+            ],
+          };
+        }
         if (!review.ok) {
           const revision = await generateScene({
             ...context,
+            ...(context.escalation ? { escalation: true } : {}),
+            failureIssues: [
+              ...(context.failureIssues ?? []),
+              ...visualBlocking.map((finding) => `[visual/${finding.area}] ${finding.detail}`),
+              ...(review.ok ? [] : review.findings.map((finding) => finding.detail)),
+            ].slice(0, 8),
             reviewFeedback: review.findings
               .filter((finding) => finding.severity === "blocking")
               .map((finding) => `${finding.detail} Fix: ${finding.suggestion}`)
@@ -505,15 +574,25 @@ async function runGeneration(courseId: string): Promise<void> {
         });
         } catch (error) {
           const message = (error as Error).message.slice(0, 1200);
+          // Keep the concrete reasons from previous attempts so the next run
+          // (or the escalation model) can fix every one in a single pass.
+          const accumulated = collectFailureIssues(sceneRow.error, message);
+          // A scene that already had content keeps it: a failed rewrite must
+          // not delete a slide the learner was using.
+          const keepPrevious = Boolean(sceneRow.json);
           await db.update(scenesTable)
-            .set({ status: "failed", error: message, updated_at: new Date() })
+            .set({
+              status: keepPrevious ? "ready" : "failed",
+              error: accumulated,
+              updated_at: new Date(),
+            })
             .where(eq(scenesTable.id, sceneRow.id));
           emit({
             type: "scene_failed",
             course_id: courseId,
             scene_index: sceneRow.index,
             title: sceneRow.title,
-            error: message,
+            error: accumulated,
           });
         }
       }),
@@ -543,8 +622,17 @@ async function finishCourse(courseId: string): Promise<void> {
   emit({ type: "done", course_id: courseId, status });
 }
 
-/** Retry a single failed scene. */
-export async function retryScene(courseId: string, sceneId: string): Promise<boolean> {
+/**
+ * Retry a single failed scene. `forceStrong` sends this one request straight to
+ * the escalation model, which is what the player offers after two failures.
+ * The accumulated failure reasons stay on the row so the retry prompt is
+ * specific; clearing them would make the next attempt guess again.
+ */
+export async function retryScene(
+  courseId: string,
+  sceneId: string,
+  forceStrong = false,
+): Promise<boolean> {
   if (!isUuid(courseId) || !isUuid(sceneId)) return false;
   const [sceneRow] = await db
     .select()
@@ -552,10 +640,71 @@ export async function retryScene(courseId: string, sceneId: string): Promise<boo
     .where(and(eq(scenesTable.id, sceneId), eq(scenesTable.course_id, courseId)))
     .limit(1);
   if (!sceneRow) return false;
+  const [course] = await db
+    .select({ options: courses.options })
+    .from(courses)
+    .where(eq(courses.id, courseId))
+    .limit(1);
+  const settings = await getSettings();
+  const useStrong =
+    forceStrong ||
+    shouldEscalate(course?.options ?? {}, settings, sceneRow.attempts);
+  const note = useStrong
+    ? "[escalation] This request is being handled by the stronger model.\n"
+    : "";
   await db
     .update(scenesTable)
-    .set({ status: "pending", error: null, updated_at: new Date() })
+    .set({
+      status: "pending",
+      error: note + (sceneRow.error ?? ""),
+      updated_at: new Date(),
+    })
     .where(eq(scenesTable.id, sceneId));
+  await startGeneration(courseId);
+  return true;
+}
+
+/**
+ * Regenerate one scene that is already generated. The learner asked for it
+ * (a visual defect they can see, or a wording change), so the scene is put
+ * back in the queue with the reviewer's findings attached. The next writer
+ * gets those findings as a focused correction instead of starting blind.
+ */
+export async function regenerateScene(
+  courseId: string,
+  sceneId: string,
+  feedback?: string,
+): Promise<boolean> {
+  if (!isUuid(courseId) || !isUuid(sceneId)) return false;
+  const [sceneRow] = await db
+    .select()
+    .from(scenesTable)
+    .where(and(eq(scenesTable.id, sceneId), eq(scenesTable.course_id, courseId)))
+    .limit(1);
+  if (!sceneRow) return false;
+
+  const existing = sceneRow.json as Scene | null;
+  const visualFindings =
+    existing?.visual?.findings
+      ?.filter((finding) => finding.severity === "blocking")
+      .map((finding) => `[visual/${finding.area}] ${finding.detail} Fix: ${finding.suggestion}`) ?? [];
+
+  const notes = [
+    ...visualFindings,
+    ...(feedback?.trim() ? [`[learner] ${feedback.trim().slice(0, 600)}`] : []),
+  ];
+
+  // The previous version stays on the row: if the rewrite fails, the learner
+  // still has the slide they had, and the lesson keeps its length.
+  await db
+    .update(scenesTable)
+    .set({
+      status: "pending",
+      error: notes.length ? notes.join("\n").slice(0, 2000) : null,
+      updated_at: new Date(),
+    })
+    .where(eq(scenesTable.id, sceneId));
+
   await startGeneration(courseId);
   return true;
 }

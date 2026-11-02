@@ -152,8 +152,9 @@ describe("parallel scene writers", () => {
     const local = mergeSettings(cloud, { llm: { content: { provider: "ollama", model: "llama3.2" } } });
     expect(sceneConcurrency(options, local)).toBe(1);
     const absurd = mergeSettings(cloud, { generation: { max_parallel_scenes: 10_000 } });
-    expect(absurd.generation.max_parallel_scenes).toBe(4);
-    expect(sceneConcurrency(options, absurd)).toBe(4);
+    // The cap protects the provider from a flood of simultaneous writers.
+    expect(absurd.generation.max_parallel_scenes).toBe(6);
+    expect(sceneConcurrency(options, absurd)).toBe(6);
   });
 });
 

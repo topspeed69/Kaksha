@@ -59,13 +59,14 @@ export default function CreatePage() {
   const [depth, setDepth] = useState<Depth>("undergraduate");
   const [minutes, setMinutes] = useState(30);
   const [background, setBackground] = useState<Background>("familiar");
-  const [voice, setVoice] = useState("captions");
+  const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
   const [speed, setSpeed] = useState(1);
   const [deriveProofs, setDeriveProofs] = useState(true);
   const [embedCitations, setEmbedCitations] = useState(true);
   const [usePageImages, setUsePageImages] = useState(true);
   const [reviewOverride, setReviewOverride] = useState<boolean | null>(null);
   const [parallelOverride, setParallelOverride] = useState<boolean | null>(null);
+  const [escalationOverride, setEscalationOverride] = useState<boolean | null>(null);
   const [dragging, setDragging] = useState(false);
   const fileInput = useRef<HTMLInputElement | null>(null);
 
@@ -83,16 +84,21 @@ export default function CreatePage() {
   });
   const reviewAgent = reviewOverride ?? defaults.data?.settings.generation?.review_agent_default ?? false;
   const parallelAgents = parallelOverride ?? defaults.data?.settings.generation?.parallel_agents_default ?? false;
+  const escalationModel =
+    escalationOverride ?? defaults.data?.settings.generation?.escalation_model_default ?? true;
+  const escalationConfigured = Boolean(
+    defaults.data?.settings.llm.escalation?.provider !== "none" &&
+    defaults.data?.settings.llm.escalation?.model,
+  );
   const reviewerConfigured = Boolean(
     (defaults.data?.settings.llm.reviewer?.provider !== "none" && defaults.data?.settings.llm.reviewer?.model) ||
     (defaults.data?.settings.llm.default?.provider !== "none" && defaults.data?.settings.llm.default?.model),
   );
 
-  useEffect(() => {
-    if (voices.data?.voices.length && !voices.data.voices.some((v) => v.id === voice)) {
-      setVoice(voices.data.voices[0].id);
-    }
-  }, [voices.data, voice]);
+  const voice =
+    selectedVoice && voices.data?.voices.some((v) => v.id === selectedVoice)
+      ? selectedVoice
+      : voices.data?.voices[0]?.id ?? "captions";
 
   const upload = async (file: File) => {
     setBusy(true);
@@ -175,6 +181,7 @@ export default function CreatePage() {
           review_agent: reviewAgent,
           parallel_agents: parallelAgents,
           use_page_images: usePageImages,
+          escalation_model: escalationModel,
         },
       });
       router.push(`/courses/${result.id}/plan`);
@@ -194,18 +201,18 @@ export default function CreatePage() {
     <div className="grid12">
       <div className="col-span-4 lg:col-span-8">
         <h1 className="type-display text-ink">Create a new course</h1>
-        <p className="type-body-lg measure mt-4 max-w-[56ch] text-muted">
+        <p className="type-body-lg measure mt-3 max-w-[56ch] text-muted md:mt-4">
           Start from a document, a link, or just a topic. Lumen plans the outline first, and you can
           edit it before any lesson is generated.
         </p>
       </div>
 
-      <div className="col-span-4 mt-10 lg:col-span-12">
-        <div role="tablist" aria-label="Source" className="flex border-b border-rule">
+      <div className="col-span-4 mt-4 md:mt-10 lg:col-span-12">
+        <div role="tablist" aria-label="Source" className="grid grid-cols-3 border-b border-rule md:flex">
           {[
-            { key: "upload" as const, label: "Upload document", icon: Upload },
-            { key: "link" as const, label: "Paste link", icon: LinkIcon },
-            { key: "topic" as const, label: "Enter topic", icon: Type },
+            { key: "upload" as const, label: "Upload document", short: "Upload", icon: Upload },
+            { key: "link" as const, label: "Paste link", short: "Link", icon: LinkIcon },
+            { key: "topic" as const, label: "Enter topic", short: "Topic", icon: Type },
           ].map((item) => (
             <button
               key={item.key}
@@ -214,14 +221,15 @@ export default function CreatePage() {
               aria-selected={tab === item.key}
               onClick={() => setTab(item.key)}
               className={cn(
-                "type-label -mb-px flex items-center gap-2 border-b-2 px-4 py-3 transition-colors",
+                "type-label -mb-px flex min-h-14 flex-col items-center justify-center gap-1 border-b-2 px-2 py-2 text-center transition-colors md:min-h-0 md:flex-row md:gap-2 md:px-4 md:py-3",
                 tab === item.key
                   ? "border-accent text-accent"
                   : "border-transparent text-muted hover:text-ink",
               )}
             >
               <item.icon size={14} strokeWidth={1.5} />
-              {item.label}
+              <span className="md:hidden">{item.short}</span>
+              <span className="hidden md:inline">{item.label}</span>
             </button>
           ))}
         </div>
@@ -359,7 +367,7 @@ export default function CreatePage() {
         </div>
       </div>
 
-      <div className="col-span-4 mt-12 lg:col-span-12">
+      <div className="col-span-4 mt-8 md:mt-12 lg:col-span-12">
         <NumberedSection index="01" title="Depth" hint={DEPTH_HINTS[depth]} />
         <div className="mt-4">
           <SegmentedControl
@@ -375,7 +383,7 @@ export default function CreatePage() {
         </div>
       </div>
 
-      <div className="col-span-4 mt-12 lg:col-span-6">
+      <div className="col-span-4 mt-8 md:mt-12 lg:col-span-6">
         <NumberedSection index="02" title="Time available" />
         <div className="mt-4">
           <Slider
@@ -396,7 +404,7 @@ export default function CreatePage() {
         </div>
       </div>
 
-      <div className="col-span-4 mt-12 lg:col-span-6">
+      <div className="col-span-4 mt-8 md:mt-12 lg:col-span-6">
         <NumberedSection index="03" title="Your background" hint={BACKGROUND_HINTS[background]} />
         <div className="mt-4">
           <SegmentedControl
@@ -412,7 +420,7 @@ export default function CreatePage() {
         </div>
       </div>
 
-      <div className="col-span-4 mt-12 lg:col-span-6">
+      <div className="col-span-4 mt-8 md:mt-12 lg:col-span-6">
         <NumberedSection
           index="04"
           title="Voice"
@@ -425,7 +433,7 @@ export default function CreatePage() {
           <Select
             label="Voice"
             value={voice}
-            onChange={setVoice}
+            onChange={setSelectedVoice}
             options={(
               voices.data?.voices ?? [
                 { id: "captions", name: "Browser voice (your device)", language: "en" },
@@ -459,7 +467,7 @@ export default function CreatePage() {
         </div>
       </div>
 
-      <div className="col-span-4 mt-12 lg:col-span-6">
+      <div className="col-span-4 mt-8 md:mt-12 lg:col-span-6">
         <NumberedSection index="Options" title="What to include" />
         <div className="mt-4 space-y-4">
           <Checkbox
@@ -501,15 +509,28 @@ export default function CreatePage() {
               description="Write separate scenes concurrently using the content model. Local Ollama stays serial to avoid overloading it."
             />
           </div>
-          {(reviewAgent || parallelAgents) ? (
+          <div className="border-t border-rule pt-4">
+            <Checkbox
+              checked={escalationModel}
+              onChange={setEscalationOverride}
+              label="Escalate to a smarter model after 2 retries"
+              description="If a scene fails twice, that one request goes to the stronger escalation model with the exact failure list, instead of repeating the same call. No extra models to configure: it uses your provider's stronger variant."
+            />
+            {escalationModel && !escalationConfigured ? (
+              <p className="type-body-sm mt-2 pl-8 text-muted">
+                No escalation model is set. Choose one in Settings → Models → Escalation, or this course will keep using the content model for retries.
+              </p>
+            ) : null}
+          </div>
+          {(reviewAgent || parallelAgents || escalationModel) ? (
             <p className="type-body-sm border-l-2 border-accent pl-3 text-muted">
-              Model usage: review adds at least one extra model call per scene and may add revision calls. Parallel agents make concurrent calls and may reach provider rate limits; check your provider’s token costs.
+              Model usage: review adds at least one extra model call per scene and may add revision calls. Parallel agents make concurrent calls and may reach provider rate limits. Escalation only costs an extra call when a scene actually fails twice; check your provider’s token costs.
             </p>
           ) : null}
         </div>
       </div>
 
-      <div className="col-span-4 mt-12 border-t border-rule pt-6 lg:col-span-12">
+      <div className="col-span-4 mt-8 border-t border-rule pt-6 md:mt-12 lg:col-span-12">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
             <Tag tone="outline">Estimated {modules} modules</Tag>

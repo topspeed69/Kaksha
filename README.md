@@ -48,6 +48,52 @@ drafted from your material by the built-in planner and writer, and short answers
 keyword comparison with the reference answer. Every such course says so on the plan screen, and the
 grader tells you its confidence is low. Nothing pretends to be model output.
 
+## Visual review and grading (v1.2)
+
+Every scene is audited by two reviewers before and after it is generated:
+
+* **Deterministic layout audit** (no model, always on): text budget, element density,
+  layout/content mismatch, missing diagrams on mechanism scenes, label collisions,
+  figure captions and alt text, plot axes, and visual dead air. Blocking findings
+  send the scene back for one repair pass; they are stored on the scene as `visual`.
+* **Visual agent reviewer** (model, on demand in the player): the rendered stage is
+  captured as a PNG and sent with the scene JSON to a vision model, which reports
+  overflow, collisions, weak hierarchy, contrast problems and diagram quality.
+  Open **Visual review → Review screenshot** in the lecture player.
+
+Mechanism topics (transformers, the water cycle, an engine, a circuit) are planned
+with at least one diagram scene, the slide prompt refuses to pass without a labelled
+diagram, and a deterministic flow diagram is synthesised if a model still skips it.
+
+Short answers and derivations are graded against a rubric with **semantic
+equivalence and partial credit**: criterion ids are normalised (renamed ids and
+0–100 scales no longer collapse to zero), every covered key point earns marks, and
+a floor is applied so a correct paraphrase can never score 0%.
+
+## Resilient retries and an escalation model
+
+A rejected LLM reply no longer triggers a vague "try again". `generateStructured`
+builds a focused retry prompt that lists the exact validation failures, shows
+what was rejected, and asks for a single-pass rewrite with a pre-answer
+self-check. A second repair only happens for parse failures; anything else is
+escalated rather than repeated.
+
+**Escalation model**: enable it on Create (or as a default in Settings). After a
+scene fails twice, that one request goes to the dedicated **Escalation** model
+slot with the accumulated failure list. It also appears as the "Use smarter
+model" button on any failed scene. No extra provider is needed: when the
+deployment supplies `MODEL_NAME` / `BASE_URL` / `API_KEY`, Lumen derives a
+stronger variant of the same provider's family automatically (or you can pick
+one in Settings → 01 Models). A stronger model is only called when a scene
+actually fails, so a clean generation costs nothing extra.
+
+## Library filters (bounded facets)
+
+The library uses a fixed set of facets — status, depth, progress — plus search
+and sort. It never generates chips from course titles, so a library with hundreds
+of lectures stays usable. Facets are collapsible, show counts, and clear in one
+click.
+
 ## Speech
 
 * `Captions only` (default): narration is shown as captions, timed from the text at 150 words per

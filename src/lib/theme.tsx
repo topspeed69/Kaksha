@@ -35,7 +35,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       return Defaults;
     }
   });
-  const [resolved, setResolved] = useState<"light" | "dark">("light");
+  // The boot script in the document head already applied the right theme, so
+  // read it back instead of guessing "light" and repainting.
+  const [resolved, setResolved] = useState<"light" | "dark">(() => {
+    if (typeof document === "undefined") return "light";
+    return document.documentElement.classList.contains("dark") ? "dark" : "light";
+  });
 
   useEffect(() => {
     const apply = () => {

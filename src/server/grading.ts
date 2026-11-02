@@ -108,16 +108,21 @@ export function gradeByOverlap(question: Question, answer: QuizAnswer): GradeRes
   const text = "text" in answer ? answer.text : "";
   const reference = question.rubric?.reference_answer ?? "";
   const refSimilarity = overlap(text, reference);
-  const points = matchedKeyPoints(text, question.rubric?.key_points ?? []);
-  const totalKeyPoints = Math.max(1, question.rubric?.key_points.length ?? 1);
-  const pointCoverage = points.matched.length / totalKeyPoints;
+  const assessment = assessAnswer(text, question);
+  const points = { matched: assessment.matched, missing: assessment.missing };
   const criteria = (question.rubric?.criteria ?? []).map((criterion) => {
     const critSimilarity = overlap(text, `${criterion.label} ${criterion.description} ${reference}`);
-    const blended = 0.55 * refSimilarity + 0.25 * critSimilarity + 0.2 * pointCoverage;
+    // Key-point coverage and meaning overlap both count, so a correct answer in
+    // the student's own words is not punished for using different vocabulary.
+    const blended = Math.max(
+      0.45 * refSimilarity + 0.25 * critSimilarity + 0.3 * assessment.coverage,
+      assessment.coverageFloor,
+      assessment.semanticFloor,
+    );
     return {
       id: criterion.id,
       score: Math.round(Math.max(0, Math.min(1, blended)) * 100) / 100,
-      comment: `Marked by deterministic keyword comparison with the reference answer (no grading model configured). Weight ${criterion.weight}.`,
+      comment: `Marked by deterministic keyword and key-point comparison with the reference answer (no grading model configured). Weight ${criterion.weight}.`,
     };
   });
   const total = (question.rubric?.criteria ?? []).reduce(
@@ -125,7 +130,7 @@ export function gradeByOverlap(question: Question, answer: QuizAnswer): GradeRes
     0,
   );
   return {
-    score: Math.round(Math.min(1, total) * 100) / 100,
+    score: Math.round(Math.min(1, Math.max(total, assessment.coverageFloor, assessment.semanticFloor)) * 100) / 100,
     criteria,
     matched_points: points.matched,
     missing_points: points.missing,
@@ -174,6 +179,7 @@ export async function gradeAnswer(input: GradeInput): Promise<GradeResult> {
       referenceAnswer: question.rubric.reference_answer,
       keyPoints: question.rubric.key_points,
       criteria: question.rubric.criteria.map((c) => ({
+        id: c.id,
         label: c.label,
         description: c.description,
       })),
@@ -200,32 +206,211 @@ export async function gradeAnswer(input: GradeInput): Promise<GradeResult> {
     };
   }
   const raw = outcome.value;
-  const byId = new Map(
-    (question.rubric?.criteria ?? []).map((c) => [c.id, c] as const),
-  );
-  const criteria = (raw.criteria ?? []).map((entry) => {
-    const id = String(entry.id ?? "");
-    const criterion = byId.get(id);
-    const score = Math.max(0, Math.min(1, Number(entry.score ?? 0)));
-    return {
-      id: criterion?.id ?? id,
-      score,
-      comment: String(entry.comment ?? "").slice(0, 400),
-    };
-  });
-  const total = (question.rubric?.criteria ?? []).reduce((acc, criterion) => {
+  const rubricCriteria = question.rubric?.criteria ?? [];
+
+  // The model is asked for our criterion ids, but smaller models rename them,
+  // omit them, or answer on a 0-100 scale. Normalise all of that instead of
+  // silently reading every score as 0 — that was the "correct answer, 0%" bug.
+  const criteria = normalizeCriteria(raw.criteria ?? [], rubricCriteria);
+
+  const modelTotal = rubricCriteria.reduce((acc, criterion) => {
     const found = criteria.find((c) => c.id === criterion.id);
     return acc + criterion.weight * (found?.score ?? 0);
   }, 0);
+
+  // Independent evidence of understanding, so a model that says "this is right"
+  // in prose but returns unusable numbers cannot produce a zero.
+  const answerQuality = assessAnswer(text, question);
+  const evidenceFloor = Math.max(
+    answerQuality.coverageFloor,
+    answerQuality.semanticFloor,
+  );
+
+  const matchedFromModel = (raw.matched_points ?? [])
+    .map((p) => String(p).slice(0, 240))
+    .filter(Boolean);
+  const missingFromModel = (raw.missing_points ?? [])
+    .map((p) => String(p).slice(0, 240))
+    .filter(Boolean);
+  const matched_points = matchedFromModel.length
+    ? matchedFromModel
+    : answerQuality.matched;
+  const missing_points = missingFromModel.length
+    ? missingFromModel
+    : answerQuality.missing;
+
+  const blended = Math.max(modelTotal, evidenceFloor);
+  const confidence = Math.max(0, Math.min(1, Number(raw.confidence ?? 0.6)));
+  const floorApplied = blended > modelTotal + 0.001;
+
   return {
-    score: Math.round(Math.max(0, Math.min(1, total)) * 100) / 100,
-    criteria,
-    matched_points: (raw.matched_points ?? []).map((p) => String(p).slice(0, 240)),
-    missing_points: (raw.missing_points ?? []).map((p) => String(p).slice(0, 240)),
-    feedback: String(raw.feedback ?? "").slice(0, 800),
-    confidence: Math.max(0, Math.min(1, Number(raw.confidence ?? 0.5))),
+    score: Math.round(Math.max(0, Math.min(1, blended)) * 100) / 100,
+    criteria: criteria.length
+      ? criteria
+      : [
+          {
+            id: "overall",
+            score: Math.round(Math.max(0, Math.min(1, blended)) * 100) / 100,
+            comment:
+              "The grading model did not return per-criterion scores, so this is a single overall mark.",
+          },
+        ],
+    matched_points,
+    missing_points,
+    feedback: String(raw.feedback ?? "").slice(0, 800) +
+      (floorApplied
+        ? " Your answer covers key ideas from the rubric, so part marks were awarded even where the wording differs from the reference."
+        : ""),
+    confidence: floorApplied ? Math.min(confidence, 0.75) : confidence,
     graded_by: "model",
   };
+}
+
+/** Coerce one criterion score from any plausible scale into 0..1. */
+function unitScore(value: unknown): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  if (n > 1 && n <= 10) return n / 10;
+  if (n > 10 && n <= 100) return n / 100;
+  return Math.max(0, Math.min(1, n));
+}
+
+/**
+ * Map model criteria onto the rubric. Exact id first, then a case-insensitive /
+ * partial id, then position. Anything unmatched is matched by position so a
+ * renamed criterion still contributes its score.
+ */
+function normalizeCriteria(
+  entries: { id?: string; score?: number; comment?: string }[],
+  rubric: { id: string; label: string; weight: number; description: string }[],
+): { id: string; score: number; comment: string }[] {
+  if (!rubric.length) {
+    return entries.map((entry) => ({
+      id: String(entry.id ?? "criterion"),
+      score: unitScore(entry.score),
+      comment: String(entry.comment ?? "").slice(0, 400),
+    }));
+  }
+  const used = new Set<number>();
+  const out: { id: string; score: number; comment: string }[] = [];
+  const remaining = entries.map((entry, i) => ({ entry, index: i }));
+
+  const place = (
+    rubricIndex: number,
+    entry: { id?: string; score?: number; comment?: string },
+    entryIndex: number,
+  ) => {
+    if (used.has(entryIndex)) return;
+    used.add(entryIndex);
+    out.push({
+      id: rubric[rubricIndex].id,
+      score: unitScore(entry.score),
+      comment: String(entry.comment ?? "").slice(0, 400),
+    });
+  };
+
+  // Pass 1: exact id.
+  rubric.forEach((criterion, r) => {
+    const hit = remaining.find(
+      ({ entry }) => String(entry.id ?? "").trim() === criterion.id,
+    );
+    if (hit) place(r, hit.entry, hit.index);
+  });
+  // Pass 2: the model invented ids that contain the rubric id, or matched count.
+  rubric.forEach((criterion, r) => {
+    if (out.some((c) => c.id === criterion.id)) return;
+    const hit = remaining.find(
+      ({ entry }) =>
+        String(entry.id ?? "").toLowerCase().includes(criterion.id.toLowerCase()),
+    );
+    if (hit) place(r, hit.entry, hit.index);
+  });
+  // Pass 3: positional fallback for whatever is still unmatched.
+  rubric.forEach((criterion, r) => {
+    if (out.some((c) => c.id === criterion.id)) return;
+    const hit = remaining.find(({ index }) => !used.has(index));
+    if (hit) place(r, hit.entry, hit.index);
+  });
+
+  return rubric
+    .map((criterion) => out.find((c) => c.id === criterion.id))
+    .filter(Boolean) as { id: string; score: number; comment: string }[];
+}
+
+const STOPWORDS = new Set([
+  "the", "a", "an", "and", "or", "but", "of", "to", "in", "on", "for", "with",
+  "that", "this", "these", "those", "is", "are", "was", "were", "be", "been",
+  "it", "its", "as", "at", "by", "from", "into", "than", "then", "so", "such",
+  "which", "when", "where", "how", "what", "why", "can", "could", "would",
+  "should", "may", "might", "will", "shall", "do", "does", "did", "have",
+  "has", "had", "not", "no", "yes", "you", "your", "they", "their", "we",
+  "our", "more", "most", "much", "some", "any", "each", "every", "also",
+]);
+
+function contentTokens(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((token) => token.length > 2 && !STOPWORDS.has(token));
+}
+
+/**
+ * Deterministic reading of how much of the rubric an answer actually covers.
+ * Used to floor model marks and as the offline grader, so a correct paraphrase
+ * can never land on zero.
+ */
+export function assessAnswer(text: string, question: Question): {
+  matched: string[];
+  missing: string[];
+  coverage: number;
+  coverageFloor: number;
+  semanticFloor: number;
+  relevance: number;
+} {
+  const points = question.rubric?.key_points ?? [];
+  const answerTokens = new Set(contentTokens(text));
+  const matched: string[] = [];
+  const missing: string[] = [];
+  for (const point of points) {
+    const tokens = contentTokens(point);
+    if (!tokens.length) continue;
+    const hits = tokens.filter((token) => answerTokens.has(token)).length;
+    // A key point counts when a third of its content words appear, or when any
+    // two of its longer, more specific words appear.
+    const strong = tokens.filter((token) => token.length >= 6);
+    const strongHits = strong.filter((token) => answerTokens.has(token)).length;
+    if (hits / tokens.length >= 0.34 || (strong.length > 0 && strongHits >= Math.min(2, strong.length))) {
+      matched.push(point);
+    } else {
+      missing.push(point);
+    }
+  }
+  const coverage = points.length ? matched.length / points.length : 0;
+  const reference = `${question.rubric?.reference_answer ?? ""} ${points.join(" ")}`;
+  const similarity = overlap(text, question.rubric?.reference_answer ?? "");
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  const substantial = words >= 6;
+
+  // Relevance gate: an answer that never touches the rubric vocabulary is
+  // off-topic, and no floor should rescue it. This is what keeps the partial
+  // credit from turning into credit for confident nonsense.
+  const rubricTokens = new Set(contentTokens(reference));
+  const answerTokenList = [...answerTokens];
+  const relevance = answerTokenList.length
+    ? answerTokenList.filter((token) => rubricTokens.has(token)).length / answerTokenList.length
+    : 0;
+
+  let semanticFloor = 0;
+  if (substantial && relevance >= 0.2 && similarity >= 0.6) {
+    semanticFloor = Math.min(0.75, 0.4 + similarity * 0.35);
+  } else if (substantial && relevance >= 0.2 && similarity >= 0.5) {
+    semanticFloor = 0.35;
+  }
+  // Any covered key point is worth real credit: half coverage lands near 0.5.
+  const coverageFloor =
+    coverage > 0 && relevance >= 0.15 ? Math.min(0.9, 0.25 + coverage * 0.55) : 0;
+  return { matched, missing, coverage, coverageFloor, semanticFloor, relevance };
 }
 
 /** Draft (non-final) feedback: hints only, no score, no reference answer. */
@@ -262,6 +447,7 @@ export async function draftFeedback(input: GradeInput): Promise<{
       referenceAnswer: question.rubric?.reference_answer ?? "",
       keyPoints: question.rubric?.key_points ?? [],
       criteria: (question.rubric?.criteria ?? []).map((c) => ({
+        id: c.id,
         label: c.label,
         description: c.description,
       })),

@@ -20,7 +20,7 @@ import {
 import type { LumenSettings, SlotName } from "@/server/settings";
 import { SECRET_CLEAR, SECRET_MASK } from "@/lib/provider-config";
 
-const SLOTS: SlotName[] = ["default", "planner", "content", "reviewer", "grader", "tutor"];
+const SLOTS: SlotName[] = ["default", "planner", "content", "reviewer", "grader", "tutor", "escalation"];
 
 const PROVIDERS = [
   { value: "openai", label: "OpenAI compatible" },
@@ -220,12 +220,14 @@ export default function SettingsPage() {
                         : slot === "content"
                           ? "Writes slides, whiteboard steps and quizzes."
                           : slot === "reviewer"
-                            ? "Independently checks teaching quality, sources and correctness when enabled."
+                            ? "The visual reviewer. Checks teaching quality, sources and correctness, and can look at a rendered slide screenshot."
                             : slot === "grader"
                               ? "Grades short answers against a rubric."
                               : slot === "tutor"
                                 ? "Answers questions during the lesson."
-                                : "Used for any task without its own model."}
+                                : slot === "escalation"
+                                  ? "A stronger model used only for a scene that failed twice. The exact failure list is passed to it."
+                                  : "Used for any task without its own model."}
                     </span>
                     <span className="type-label mt-2 block text-muted">
                       {config.provider === "none" || !config.model
@@ -243,8 +245,10 @@ export default function SettingsPage() {
                 <div id={`model-slot-${slot}`} className="grid gap-4 pb-4 md:grid-cols-2">
                   <p className="type-body-sm measure text-muted">
                     {slot === "reviewer"
-                      ? "The reviewer is optional. If its slot is unset, the default model is used. Format checks run even without a model."
-                      : "Set a provider, model and optional address. Keys stay encrypted server-side."}
+                      ? "The visual reviewer is optional. Point it at a vision-capable model to inspect rendered slides, or leave it unset and it falls back to the default model. Format and layout checks run even without a model."
+                      : slot === "escalation"
+                        ? "Pick a stronger model at the same provider (or another one). It is only called after two failed attempts on a scene, when escalation is enabled for that course."
+                        : "Set a provider, model and optional address. Keys stay encrypted server-side."}
                   </p>
                   <div className="grid gap-3">
                   <Select
@@ -355,7 +359,7 @@ export default function SettingsPage() {
               generation: { ...settings.generation, review_agent_default: value },
             })}
             label="Independent review agent by default"
-            description="Runs one extra model review per scene; blocking findings can trigger a revision call."
+            description="Runs one extra model review per scene while generating. Off by default because it doubles the number of model calls; the free deterministic visual audit always runs either way."
           />
           <div>
             <Checkbox
@@ -376,14 +380,23 @@ export default function SettingsPage() {
                     ...settings,
                     generation: { ...settings.generation, max_parallel_scenes: Number(value) },
                   })}
-                  options={[2, 3, 4].map((n) => ({ value: String(n), label: `${n} concurrent writers` }))}
+                  options={[2, 3, 4, 6].map((n) => ({ value: String(n), label: `${n} concurrent writers` }))}
                 />
               </div>
             ) : null}
           </div>
+          <Checkbox
+            checked={settings.generation.escalation_model_default}
+            onChange={(value) => setSettings({
+              ...settings,
+              generation: { ...settings.generation, escalation_model_default: value },
+            })}
+            label="Escalate hard retries to a smarter model"
+            description="After two failures on one scene, send that request to the Escalation model with the concrete failure list instead of retrying the same model again."
+          />
         </div>
         <p className="type-body-sm mt-5 border-l-2 border-accent pl-3 text-muted">
-          Review consumes additional model tokens per scene. Parallel writing increases simultaneous requests and may hit provider limits. Check your provider’s pricing and rate limits.
+          Review consumes additional model tokens per scene. Escalation only costs a call when a scene actually fails twice. Parallel writing increases simultaneous requests and may hit provider limits. Check your provider’s pricing and rate limits.
         </p>
       </div>
 

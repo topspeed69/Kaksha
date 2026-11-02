@@ -48,6 +48,8 @@ export type CourseSummary = {
   };
   last_opened_at: string | null;
   created_at: string;
+  updated_at: string;
+  topic: string | null;
   scene_kinds: { slide: number; whiteboard: number; quiz: number };
   quiz_count: number;
 };
@@ -130,6 +132,8 @@ export async function listCourses(): Promise<CourseSummary[]> {
       },
       last_opened_at: row.last_opened_at?.toISOString() ?? null,
       created_at: row.created_at.toISOString(),
+      updated_at: row.updated_at.toISOString(),
+      topic: row.topic ?? null,
       scene_kinds: {
         slide: sceneRows.filter((s) => s.kind === "slide").length,
         whiteboard: sceneRows.filter((s) => s.kind === "whiteboard").length,
@@ -175,7 +179,13 @@ function assembleCourseFromRows(
   materialRows: MaterialRow[],
 ): Course {
   const plan = row.plan as CoursePlan | null;
-  const readyScenes = sceneRows.filter((s) => s.status === "ready" && s.json);
+  // A scene that is being rewritten keeps its previous version on screen
+  // instead of leaving a hole in the lesson.
+  const readyScenes = sceneRows.filter(
+    (s) =>
+      (s.status === "ready" || s.status === "pending" || s.status === "generating") &&
+      Boolean(s.json),
+  );
   const byIndex = new Map(readyScenes.map((s) => [s.index, s.json as Scene]));
   const materialLabels = materialRows.map((m) => m.label);
 
@@ -264,6 +274,7 @@ export type CourseDetail = {
     error: string | null;
     attempts: number;
     duration_ms: number | null;
+    visual: Scene["visual"] | null;
   }[];
   materials: MaterialSummary[];
   progress: { scene_index: number; t_ms: number; scenes_done: number[] };
@@ -309,6 +320,7 @@ export async function getCourseDetail(courseId: string): Promise<CourseDetail | 
       error: s.error,
       attempts: s.attempts,
       duration_ms: s.json ? sceneDurationMs(s.json as Scene) : null,
+      visual: (s.json as Scene | null)?.visual ?? null,
     })),
     materials: materialRows.map((m) => ({
       id: m.id,

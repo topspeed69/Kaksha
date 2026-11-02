@@ -5,6 +5,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
   Captions,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Maximize,
@@ -57,7 +58,10 @@ export function Stage({ scene }: { scene: Scene }) {
     return <Whiteboard scene={scene} state={state} />;
   }
   return (
-    <div className="flex w-full items-center justify-center border border-rule bg-stage px-8 py-16" style={{ aspectRatio: "16 / 9" }}>
+    <div
+      className="flex w-full items-center justify-center border border-rule bg-stage px-5 py-10 md:px-8 md:py-16"
+      style={{ aspectRatio: "16 / 9" }}
+    >
       <div className="max-w-[52ch]">
         <p className="type-label text-accent">Quiz scene</p>
         <h3 className="type-h2 mt-2 text-ink">{scene.title}</h3>
@@ -80,9 +84,9 @@ export function Stage({ scene }: { scene: Scene }) {
 /* -------------------------------- captions -------------------------------- */
 
 const CAPTION_FONT_CLASS: Record<"md" | "lg" | "xl", string> = {
-  md: "text-[16px] leading-normal",
-  lg: "text-[20px] leading-snug",
-  xl: "text-[24px] leading-snug",
+  md: "text-[14px] leading-snug sm:text-[16px] sm:leading-normal",
+  lg: "text-[15px] leading-snug sm:text-[20px]",
+  xl: "text-[17px] leading-snug sm:text-[24px]",
 };
 
 export function CaptionBar() {
@@ -97,9 +101,9 @@ export function CaptionBar() {
   if (!captions || !segment) return null;
   const sizeClass = CAPTION_FONT_CLASS[appearance.caption_size] ?? CAPTION_FONT_CLASS.lg;
   return (
-    <div className="flex items-baseline gap-3 border border-rule bg-surface px-4 py-3">
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border border-rule bg-surface px-3 py-2.5 sm:px-4 sm:py-3">
       <span className="type-num shrink-0 text-accent">[{formatClock(seconds * 1000)}]</span>
-      <p className={cn("font-body font-medium text-ink", sizeClass)}>{segment.text}</p>
+      <p className={cn("min-w-0 flex-1 font-body font-medium text-ink", sizeClass)}>{segment.text}</p>
       <span className="type-label ml-auto hidden shrink-0 text-muted sm:block">{rate}×</span>
     </div>
   );
@@ -146,7 +150,7 @@ export function TransportBar({ sceneMarkers = true }: { sceneMarkers?: boolean }
   );
 
   return (
-    <div className="flex flex-col gap-3 border border-rule bg-surface-2 p-3">
+    <div className="flex flex-col gap-2 border-b border-rule bg-bg pb-2">
       <div className="relative h-[6px] w-full bg-surface-3">
         <div className="absolute inset-y-0 left-0 bg-accent" style={{ width: `${pct}%` }} />
         <div
@@ -174,13 +178,13 @@ export function TransportBar({ sceneMarkers = true }: { sceneMarkers?: boolean }
           className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
         />
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={toggle}
             aria-label={status === "playing" ? "Pause" : "Play"}
-            className="flex h-9 w-9 items-center justify-center bg-ink text-bg transition-colors hover:bg-accent"
+            className="flex h-11 w-11 items-center justify-center bg-ink text-bg transition-colors hover:bg-accent sm:h-9 sm:w-9"
           >
             {status === "playing" ? (
               <Pause size={18} strokeWidth={1.5} />
@@ -192,7 +196,7 @@ export function TransportBar({ sceneMarkers = true }: { sceneMarkers?: boolean }
             type="button"
             onClick={() => seekBy(-10000)}
             aria-label="Back 10 seconds"
-            className="flex h-9 w-9 items-center justify-center border border-rule text-ink hover:bg-surface"
+            className="flex h-11 w-11 items-center justify-center border border-rule text-ink hover:bg-surface sm:h-9 sm:w-9"
           >
             <RotateCcw size={16} strokeWidth={1.5} />
           </button>
@@ -200,7 +204,7 @@ export function TransportBar({ sceneMarkers = true }: { sceneMarkers?: boolean }
             type="button"
             onClick={() => seekBy(10000)}
             aria-label="Forward 10 seconds"
-            className="flex h-9 w-9 items-center justify-center border border-rule text-ink hover:bg-surface"
+            className="flex h-11 w-11 items-center justify-center border border-rule text-ink hover:bg-surface sm:h-9 sm:w-9"
           >
             <SkipForward size={16} strokeWidth={1.5} />
           </button>
@@ -210,8 +214,8 @@ export function TransportBar({ sceneMarkers = true }: { sceneMarkers?: boolean }
             <span className="text-ink">{formatClock(total)}</span>
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex border border-rule" role="group" aria-label="Playback speed">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="-mx-1 flex overflow-x-auto border border-rule" role="group" aria-label="Playback speed">
             {SPEEDS.map((speed) => (
               <button
                 key={speed}
@@ -219,7 +223,7 @@ export function TransportBar({ sceneMarkers = true }: { sceneMarkers?: boolean }
                 onClick={() => setRate(speed)}
                 aria-pressed={speed === rate}
                 className={cn(
-                  "type-label-sm border-r border-rule px-2 py-1 last:border-r-0 transition-colors",
+                  "type-label-sm shrink-0 border-r border-rule px-2.5 py-2 last:border-r-0 transition-colors sm:px-2 sm:py-1",
                   speed === rate
                     ? "bg-ink text-bg"
                     : "bg-bg text-muted hover:text-ink",
@@ -269,7 +273,7 @@ export function TransportBar({ sceneMarkers = true }: { sceneMarkers?: boolean }
               if (document.fullscreenElement) void document.exitFullscreen();
               else void target.requestFullscreen().catch(() => undefined);
             }}
-            className="flex h-9 w-9 items-center justify-center border border-rule text-ink hover:bg-surface"
+            className="flex h-11 w-11 items-center justify-center border border-rule text-ink hover:bg-surface sm:h-9 sm:w-9"
           >
             {fullscreen ? <Minimize size={16} strokeWidth={1.5} /> : <Maximize size={16} strokeWidth={1.5} />}
           </button>
@@ -350,21 +354,21 @@ export function TranscriptPanel() {
 
   return (
     <section aria-label="Transcript">
-      <div className="mb-2 flex items-center justify-between border-b border-rule pb-2">
+      <div className="mb-2 flex items-center justify-between gap-3 border-b border-rule pb-2">
         <h3 className="type-label text-ink">Transcript</h3>
-        <label className="type-label flex cursor-pointer items-center gap-2 text-muted">
+        <label className="type-label ml-auto flex cursor-pointer items-center gap-2 text-muted">
           <input
             type="checkbox"
             checked={autoscroll}
             onChange={(event) => setAutoscroll(event.target.checked)}
-            className="h-3 w-3 accent-[var(--accent)]"
+            className="h-4 w-4 accent-[var(--accent)]"
           />
           Autoscroll
         </label>
       </div>
       <div
         ref={containerRef}
-        className="max-h-[420px] divide-y divide-[var(--rule)] overflow-y-auto border border-rule bg-bg"
+        className="max-h-[420px] divide-y divide-[var(--rule)] overflow-y-auto border border-rule bg-bg max-md:max-h-none"
       >
         {timeline.segments.map((segment) => (
           <TranscriptRow key={segment.id} segment={segment} active={segment.id === activeId} onSeek={onSeek} />
@@ -401,28 +405,32 @@ export function ModuleTrack() {
                 </span>
                 {module.title}
               </p>
-              <span className="type-label text-muted">{module.duration_min} min</span>
+              <span className="type-label shrink-0 whitespace-nowrap text-muted">{module.duration_min} min</span>
             </div>
-            <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+            <ul className="mt-2 flex flex-col md:flex-row md:flex-wrap md:gap-x-4 md:gap-y-2">
               {entries.map((entry) => {
                 const active = entry.sceneIndex === sceneIndex;
                 return (
-                  <li key={entry.scene.id}>
+                  <li
+                    key={entry.scene.id}
+                    className="border-b border-rule last:border-b-0 md:border-b-0"
+                  >
                     <button
                       type="button"
                       onClick={() => goToScene(entry.sceneIndex, 0)}
+                      aria-current={active ? "true" : undefined}
                       className={cn(
-                        "type-body-sm flex items-center gap-2 border-b pb-1 transition-colors",
+                        "type-body-sm flex min-h-12 w-full items-center gap-3 px-1 py-2.5 text-left transition-colors md:min-h-0 md:w-auto md:gap-2 md:border-b md:px-0 md:py-0 md:pb-1",
                         active
-                          ? "border-accent text-accent"
-                          : "border-transparent text-muted hover:text-ink",
+                          ? "text-accent max-md:bg-surface-2 md:border-accent"
+                          : "text-muted hover:text-ink md:border-transparent",
                       )}
                     >
                       <span className="type-num">
                         {String(entry.sceneIndex + 1).padStart(2, "0")}
                       </span>
-                      {entry.scene.title}
-                      <span className="type-label text-muted">{entry.kind}</span>
+                      <span className="min-w-0 flex-1 md:flex-none">{entry.scene.title}</span>
+                      <span className="type-label ml-auto text-muted md:ml-0">{entry.kind}</span>
                     </button>
                   </li>
                 );
@@ -477,7 +485,7 @@ export function ToolsPanel() {
   };
 
   return (
-    <section aria-label="Tools" className="border-t border-rule pt-4">
+    <section aria-label="Tools" className="border-t border-rule pt-4 max-md:border-t-0 max-md:pt-0">
       <h3 className="type-label text-muted">Tools</h3>
       <div className="mt-3 space-y-3">
         <label className="block">
@@ -486,7 +494,7 @@ export function ToolsPanel() {
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
             rows={3}
-            className="mt-2 w-full border border-rule bg-bg px-3 py-2 text-ink"
+            className="mt-2 w-full border border-rule bg-bg px-3 py-2.5 text-ink outline-none focus:border-ink"
           />
         </label>
         <Button variant="secondary" onClick={ask} disabled={busy} full>
@@ -566,17 +574,17 @@ export function SceneIntro() {
   const flat = usePlayerStore((s) => s.flat);
   if (!entry || !flat.length) return null;
   return (
-    <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-rule pb-3">
-      <div>
-        <p className="type-label text-accent">
+    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-2 border-b border-rule pb-3">
+      <div className="min-w-0">
+        <h2 className="scene-title text-ink">{entry.scene.title}</h2>
+        <p className="type-label mt-1 text-muted">
           Module {String(entry.moduleIndex + 1).padStart(2, "0")}
         </p>
-        <h2 className="type-h1 mt-1 text-ink">{entry.scene.title}</h2>
       </div>
       <div className="flex items-center gap-2">
         <Tag tone="outline">{entry.kind}</Tag>
         {entry.scene.review ? (
-          <span title={entry.scene.review.summary}>
+          <span title={entry.scene.review.summary} className="hidden sm:inline">
             <Tag tone="quiet">
               {entry.scene.review.status === "approved"
                 ? "Model reviewed"
@@ -791,6 +799,261 @@ export function PrevNextScene() {
       >
         <ChevronRight size={16} strokeWidth={1.5} />
       </button>
+    </div>
+  );
+}
+
+/* ------------------------- phone: YouTube-style player ------------------------ */
+
+/**
+ * Tap the stage to play or pause, double-tap its left or right third to jump
+ * ten seconds, like a video app. Sits over the stage on phones only.
+ */
+export function StageGestures() {
+  const status = usePlayerStore((s) => s.status);
+  const toggle = usePlayerStore((s) => s.toggle);
+  const seekBy = usePlayerStore((s) => s.seekBy);
+  const last = useRef<{ t: number; side: "l" | "r" } | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const statusRef = useRef(status);
+  const [started, setStarted] = useState(false);
+  if (status === "playing" && !started) {
+    setStarted(true);
+  }
+  const [flash, setFlash] = useState<{ kind: "l" | "r" | "play" | "pause"; key: number } | null>(null);
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
+
+  // A paused slide stays readable: the big button is only a first-play prompt,
+  // and afterwards a tap just flashes the state it switched to.
+  const playToggle = () => {
+    const wasPlaying = statusRef.current === "playing";
+    toggle();
+    setFlash({ kind: wasPlaying ? "pause" : "play", key: Date.now() });
+  };
+
+  const onTap = (event: React.MouseEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / Math.max(1, rect.width);
+    const side = x < 0.33 ? "l" : x > 0.67 ? "r" : "c";
+    if (side === "c") {
+      playToggle();
+      return;
+    }
+    const now = Date.now();
+    if (last.current && last.current.side === side && now - last.current.t < 320) {
+      if (timer.current) clearTimeout(timer.current);
+      last.current = null;
+      seekBy(side === "l" ? -10000 : 10000);
+      setFlash({ kind: side, key: now });
+      return;
+    }
+    last.current = { t: now, side };
+    if (timer.current) clearTimeout(timer.current);
+    // A lone tap on a side is a play/pause tap; wait to see if it is a double.
+    timer.current = setTimeout(() => {
+      playToggle();
+      last.current = null;
+    }, 320);
+  };
+
+  const prompt = status !== "playing" && (!started || status === "ended");
+
+  return (
+    <div
+      onClick={onTap}
+      className="absolute inset-0 z-10 md:hidden"
+      role="presentation"
+      data-stage-gestures
+    >
+      {prompt ? (
+        <span
+          aria-hidden="true"
+          className="type-label pointer-events-none absolute bottom-3 left-3 flex h-10 items-center gap-2 rounded-full bg-ink/80 pl-3 pr-4 text-bg"
+        >
+          {status === "ended" ? (
+            <><RotateCcw size={16} strokeWidth={1.5} /> Replay</>
+          ) : (
+            <><Play size={16} strokeWidth={1.5} className="translate-x-[1px]" /> Tap to play</>
+          )}
+        </span>
+      ) : null}
+      {flash ? (
+        flash.kind === "l" || flash.kind === "r" ? (
+          <span
+            key={flash.key}
+            aria-hidden="true"
+            className={cn(
+              "tap-flash type-label pointer-events-none absolute top-1/2 -translate-y-1/2 rounded-full bg-ink/75 px-4 py-3 text-bg",
+              flash.kind === "l" ? "left-[10%]" : "right-[10%]",
+            )}
+          >
+            {flash.kind === "l" ? "−10 s" : "+10 s"}
+          </span>
+        ) : (
+          <span
+            key={flash.key}
+            aria-hidden="true"
+            className="tap-flash pointer-events-none absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-ink/75 text-bg"
+          >
+            {flash.kind === "pause" ? (
+              <Pause size={24} strokeWidth={1.5} />
+            ) : (
+              <Play size={26} strokeWidth={1.5} className="translate-x-[1px]" />
+            )}
+          </span>
+        )
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * One row of controls under the stage: a thin red scrubber on the stage edge,
+ * then play, scene back/next, the clock, speed, captions and fullscreen.
+ */
+export function MobileTransport({ sceneMarkers = true }: { sceneMarkers?: boolean }) {
+  const flat = usePlayerStore((s) => s.flat);
+  const sceneIndex = usePlayerStore((s) => s.sceneIndex);
+  const tMs = usePlayerStore((s) => s.tMs);
+  const rate = usePlayerStore((s) => s.rate);
+  const captions = usePlayerStore((s) => s.captions);
+  const status = usePlayerStore((s) => s.status);
+  const toggle = usePlayerStore((s) => s.toggle);
+  const seekTo = usePlayerStore((s) => s.seekTo);
+  const setRate = usePlayerStore((s) => s.setRate);
+  const toggleCaptions = usePlayerStore((s) => s.toggleCaptions);
+  const goToScene = usePlayerStore((s) => s.goToScene);
+  const [fullscreen, setFullscreen] = useState(false);
+  useEffect(() => {
+    const onChange = () => setFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+  const entry = flat[sceneIndex];
+  const total = entry ? entry.endMs - entry.startMs : 0;
+  const pct = total > 0 ? Math.min(100, (tMs / total) * 100) : 0;
+  const markers = useMemo(
+    () => (entry ? getPreparedScene(entry.scene).timeline.segments : []),
+    [entry],
+  );
+  const cycleSpeed = () => {
+    const at = SPEEDS.indexOf(rate);
+    setRate(SPEEDS[(at + 1) % SPEEDS.length]);
+  };
+  const iconButton =
+    "flex h-11 w-10 shrink-0 items-center justify-center text-ink active:bg-surface-2 disabled:opacity-30 max-[359px]:w-9";
+
+  return (
+    <div className="border-b border-rule bg-bg md:hidden" data-mobile-transport>
+      <div className="relative mx-3 h-5 touch-none">
+        <div className="absolute inset-x-0 top-0 h-[3px] bg-rule-strong">
+          <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
+          {sceneMarkers
+            ? markers.map((segment) => (
+                <span
+                  key={segment.id}
+                  className="absolute inset-y-0 w-px bg-bg"
+                  style={{ left: `${(segment.startMs / Math.max(1, total)) * 100}%` }}
+                />
+              ))
+            : null}
+        </div>
+        <span
+          aria-hidden="true"
+          className="absolute -top-[4px] h-[11px] w-[11px] -translate-x-1/2 rounded-full bg-accent"
+          style={{ left: `${pct}%` }}
+        />
+        <input
+          type="range"
+          min={0}
+          max={Math.max(1000, total)}
+          step={250}
+          value={Math.min(tMs, total)}
+          aria-label="Seek within this scene"
+          onChange={(event) => seekTo(Number(event.target.value))}
+          className="absolute -inset-x-3 -top-2 h-9 w-[calc(100%+1.5rem)] cursor-pointer opacity-0"
+        />
+      </div>
+      <div className="flex items-center px-1 pb-1">
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label={status === "playing" ? "Pause" : "Play"}
+          className="flex h-11 w-11 shrink-0 items-center justify-center text-ink active:bg-surface-2 max-[359px]:w-10"
+        >
+          {status === "playing" ? (
+            <Pause size={22} strokeWidth={1.5} />
+          ) : (
+            <Play size={22} strokeWidth={1.5} />
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => goToScene(sceneIndex - 1, 0)}
+          disabled={sceneIndex === 0}
+          aria-label="Previous scene"
+          className={iconButton}
+        >
+          <SkipBack size={18} strokeWidth={1.5} />
+        </button>
+        <button
+          type="button"
+          onClick={() => goToScene(sceneIndex + 1, 0)}
+          disabled={sceneIndex >= flat.length - 1}
+          aria-label="Next scene"
+          className={iconButton}
+        >
+          <SkipForward size={18} strokeWidth={1.5} />
+        </button>
+        <span className="type-num ml-1 whitespace-nowrap text-[12px]">
+          <span className="text-ink">{formatClock(tMs)}</span>
+          <span className="text-muted max-[359px]:hidden"> / {formatClock(total)}</span>
+        </span>
+        <div className="ml-auto flex items-center">
+          <button
+            type="button"
+            onClick={cycleSpeed}
+            aria-label={`Playback speed ${rate}x. Tap to change.`}
+            className="type-num flex h-11 min-w-11 shrink-0 items-center justify-center px-2 text-ink active:bg-surface-2 max-[359px]:min-w-9 max-[359px]:px-1"
+          >
+            {rate}×
+          </button>
+          <button
+            type="button"
+            onClick={toggleCaptions}
+            aria-pressed={captions}
+            aria-label={captions ? "Turn captions off" : "Turn captions on"}
+            className={cn(iconButton, captions ? "text-accent" : "text-muted")}
+          >
+            <Captions size={20} strokeWidth={1.5} />
+          </button>
+          <button
+            type="button"
+            aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+            onClick={(event) => {
+              const target =
+                event.currentTarget.closest<HTMLElement>("[data-player-root]") ??
+                document.querySelector<HTMLElement>("[data-player-root]") ??
+                document.documentElement;
+              if (document.fullscreenElement) void document.exitFullscreen();
+              else void target.requestFullscreen().catch(() => undefined);
+            }}
+            className={iconButton}
+          >
+            {fullscreen ? <Minimize size={18} strokeWidth={1.5} /> : <Maximize size={18} strokeWidth={1.5} />}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

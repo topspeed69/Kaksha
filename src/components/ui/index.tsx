@@ -44,7 +44,7 @@ export function Button({
   const base =
     "inline-flex items-center justify-center gap-2 px-6 py-3 type-label transition-colors disabled:opacity-40 disabled:pointer-events-none";
   const styles: Record<ButtonVariant, string> = {
-    primary: "bg-accent text-[#fff] hover:bg-accent-hover",
+    primary: "bg-accent text-accent-ink hover:bg-accent-hover",
     secondary: "border border-ink text-ink hover:bg-ink hover:text-bg",
     ghost:
       "border-b border-rule text-ink hover:border-accent hover:text-accent px-0 py-1",
@@ -76,7 +76,7 @@ export function LinkButton({
   const base =
     "inline-flex items-center justify-center gap-2 px-6 py-3 type-label transition-colors";
   const styles: Record<ButtonVariant, string> = {
-    primary: "bg-accent text-[#fff] hover:bg-accent-hover",
+    primary: "bg-accent text-accent-ink hover:bg-accent-hover",
     secondary: "border border-ink text-ink hover:bg-ink hover:text-bg",
     ghost: "border-b border-rule text-ink hover:border-accent hover:text-accent px-0 py-1",
   };
@@ -98,7 +98,7 @@ export function Tag({
 }) {
   const tones = {
     quiet: "bg-surface-2 text-muted",
-    accent: "bg-accent text-[#fff]",
+    accent: "bg-accent text-accent-ink",
     outline: "border border-rule text-ink",
   } as const;
   return <span className={cn("type-label px-2 py-1", tones[tone])}>{children}</span>;
@@ -270,14 +270,14 @@ export function Slider({
         style={{ accentColor: "var(--accent)" }}
       />
       {ticks ? (
-        <div className="mt-3 flex gap-2">
+        <div className="mt-3 flex flex-wrap gap-2">
           {ticks.map((tick) => (
             <button
               key={tick}
               type="button"
               onClick={() => onChange(tick)}
               className={cn(
-                "type-label-sm border border-rule px-2 py-1 transition-colors",
+                "type-label-sm min-h-11 border border-rule px-3 py-2 transition-colors md:min-h-0 md:px-2 md:py-1",
                 tick === value ? "bg-ink text-bg" : "text-muted hover:text-ink",
               )}
             >
@@ -359,8 +359,8 @@ export function Checkbox({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={cn(
-          "mt-[2px] flex h-5 w-5 shrink-0 items-center justify-center border transition-colors",
-          checked ? "border-accent bg-accent text-[#fff]" : "border-rule-strong bg-bg text-transparent",
+          "mt-[2px] flex h-6 w-6 shrink-0 items-center justify-center border transition-colors md:h-5 md:w-5",
+          checked ? "border-accent bg-accent text-accent-ink" : "border-rule-strong bg-bg text-transparent",
         )}
       >
         <Check size={14} strokeWidth={2} />
@@ -560,16 +560,17 @@ export function CourseTabs({
   active,
 }: {
   courseId: string;
-  active: "lecture" | "whiteboard" | "quiz";
+  active: "lecture" | "whiteboard" | "quiz" | "review";
 }) {
   const router = useRouter();
   const tabs: { key: typeof active; label: string }[] = [
     { key: "lecture", label: "Lecture" },
     { key: "whiteboard", label: "Whiteboard" },
     { key: "quiz", label: "Quiz" },
+    { key: "review", label: "Review" },
   ];
   return (
-    <nav aria-label="Course views" className="flex gap-6 border-b border-rule">
+    <nav aria-label="Course views" className="no-scrollbar -mx-4 flex gap-5 overflow-x-auto border-b border-rule px-4 md:mx-0 md:gap-6 md:overflow-visible md:px-0">
       {tabs.map((tab) => {
         const isActive = tab.key === active;
         return (
@@ -590,7 +591,7 @@ export function CourseTabs({
             }}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "type-label -mb-px border-b-2 px-1 py-3 transition-colors",
+              "type-label -mb-px shrink-0 whitespace-nowrap border-b-2 px-1 py-3.5 transition-colors md:py-3",
               isActive
                 ? "border-accent text-accent"
                 : "border-transparent text-muted hover:text-ink",

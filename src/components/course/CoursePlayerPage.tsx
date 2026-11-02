@@ -91,32 +91,33 @@ export function CoursePlayerPage({
   );
 
   return (
-    <div className="grid12">
-      <div className="col-span-4 lg:col-span-12">
-        <nav className="type-label text-muted">
-          <Link href="/library" className="hover:text-ink">Courses</Link> / <span className="text-ink">{course.title}</span>
-        </nav>
-        <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
-          <h1 className="type-h1 max-w-[24ch] text-ink">{course.title}</h1>
-          <p className="type-body-sm text-muted">Source: {course.source.label}</p>
+    <div className="watch">
+      <div className="watch-head">
+        <div className="flex min-w-0 items-center gap-3">
+          <Link href="/library" className="type-label hidden shrink-0 text-muted hover:text-ink md:inline">
+            Courses /
+          </Link>
+          <h1 className="course-title min-w-0 truncate text-ink" title={course.title}>{course.title}</h1>
         </div>
-        {course.source.kind === "topic" && !course.source.material_ids.length ? (
-          <p className="type-body-sm mt-2 text-muted">
-            Content comes from general knowledge without attached reference material and should be checked.
+        <div className="mt-1 flex items-center justify-between gap-4 md:mt-0">
+          <CourseTabs courseId={courseId} active={view} />
+          <p className="type-label hidden shrink-0 text-muted xl:block">
+            {course.source.kind === "topic" && !course.source.material_ids.length
+              ? "General knowledge · check claims"
+              : `Source: ${course.source.label}`}
           </p>
-        ) : null}
-        <div className="mt-4"><CourseTabs courseId={courseId} active={view} /></div>
+        </div>
       </div>
 
       {!course.modules.length ? (
-        <div className="col-span-4 mt-8 lg:col-span-8">
+        <div className="watch-primary mt-6">
           <p className="type-body border border-rule bg-surface p-6 text-muted">
             This course has not been generated yet. Review the plan first, then generate the lecture.
           </p>
-          <Link href={`/courses/${courseId}/plan`} className="type-label mt-6 inline-flex items-center bg-accent px-6 py-3 text-[#fff] hover:bg-accent-hover">Review the plan</Link>
+          <Link href={`/courses/${courseId}/plan`} className="type-label mt-6 inline-flex items-center bg-accent px-6 py-3 text-accent-ink hover:bg-accent-hover">Review the plan</Link>
         </div>
       ) : view === "whiteboard" && !hasWhiteboard ? (
-        <div className="col-span-4 mt-8 lg:col-span-8">
+        <div className="watch-primary mt-6">
           <p className="type-body border border-rule bg-surface p-6 text-muted">
             This course has no whiteboard scene. Derivations appear on the board only when the plan includes them.
           </p>

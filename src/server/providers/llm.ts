@@ -1,5 +1,6 @@
 import { resolveSlot, hasModel, type SlotConfig, type SlotName, type LumenSettings } from "@/server/settings";
 import { safeFetch } from "@/server/safe-fetch";
+import { ESCALATION_SYSTEM, retryPrompt } from "@/server/prompts";
 
 export type Msg = { role: "system" | "user" | "assistant"; content: string };
 
@@ -553,7 +554,16 @@ export async function generateStructured<T>(options: {
   images?: LLMImage[];
   validate: (value: unknown) => { ok: true; value: T } | { ok: false; issues: string[] };
   maxRepairs?: number;
+  /** Higher reasoning budget for a stronger escalation model. */
+  escalation?: boolean;
 }): Promise<JsonOutcome<T>> {
+  if (options.escalation) {
+    options = {
+      ...options,
+      temperature: Math.max(options.temperature, 0.35),
+      maxTokens: Math.max(options.maxTokens, 3200),
+    };
+  }
   const { slot } = options;
   if (!slot.available) {
     return {
@@ -564,11 +574,12 @@ export async function generateStructured<T>(options: {
       model: "",
     };
   }
-  const attempt = async (extra: string): Promise<JsonOutcome<T>> => {
+  let lastReply = "";
+  const attempt = async (extra: string, escalation = false): Promise<JsonOutcome<T>> => {
     const request: LLMRequest = {
-      system: options.system,
+      system: escalation ? ESCALATION_SYSTEM : options.system,
       messages: [{ role: "user", content: `${options.prompt}${extra}` }],
-      temperature: options.temperature,
+      temperature: escalation ? Math.min(0.4, options.temperature + 0.1) : options.temperature,
       maxTokens: options.maxTokens,
       images: options.images?.slice(0, 2),
     };
@@ -586,6 +597,7 @@ export async function generateStructured<T>(options: {
         imagesDropped = true;
       } else throw error;
     }
+    lastReply = result.text;
     let parsed: unknown;
     try {
       parsed = extractJson(result.text);
@@ -616,12 +628,18 @@ export async function generateStructured<T>(options: {
   let current = await attempt("");
   if (current.ok) return current;
 
+  // One focused repair is enough when the prompt is specific. A second is only
+  // used when the first was a parse failure (models usually recover on a clean
+  // re-write), otherwise the caller escalates to a stronger model instead of
+  // burning more calls on the same one.
   const budget = options.maxRepairs ?? 1;
   for (let i = 0; i < budget && !current.ok; i += 1) {
-    const repairPrompt = `\n\nYour previous reply was rejected. Problems:\n- ${
-      current.issues.length ? current.issues.join("\n- ") : current.error
-    }\nReturn the whole corrected JSON object only.`;
-    const repaired = await attempt(repairPrompt);
+    const parseFailure = /not valid JSON|no_json|invalid JSON/i.test(current.error);
+    if (i > 0 && !parseFailure) break;
+    const repaired = await attempt(
+      retryPrompt(current.issues, current.error, i + 1, parseFailure ? "" : lastReply),
+      options.escalation,
+    );
     repaired.repairs = i + 1;
     if (repaired.ok) return repaired;
     current = repaired;

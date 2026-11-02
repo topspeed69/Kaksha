@@ -82,6 +82,22 @@ export type SceneBase = {
     summary: string;
     reviewed_by?: string;
   };
+  /**
+   * Visual QA result: the deterministic layout audit merged with the visual
+   * agent reviewer. Persisted so the player can show what was checked.
+   */
+  visual?: {
+    score: number;
+    verdict: "pass" | "revise";
+    findings: {
+      severity: "blocking" | "advisory";
+      area: string;
+      detail: string;
+      suggestion: string;
+    }[];
+    reviewed_by: string;
+    saw_screenshot: boolean;
+  };
 };
 
 export type GenerationOptions = {
@@ -93,6 +109,11 @@ export type GenerationOptions = {
   parallel_agents?: boolean;
   /** Use at most two relevant rendered PDF page images in vision-capable models. */
   use_page_images?: boolean;
+  /**
+   * Escalate to a stronger model after a scene has failed twice, instead of
+   * repeating the same request against the same model.
+   */
+  escalation_model?: boolean;
 };
 
 export type Scene = SlideScene | WhiteboardScene | QuizScene;
@@ -152,6 +173,8 @@ export type PlotSpec = {
   annotations?: { x: number; text: string }[];
 };
 
+export type DiagramNodeShape = "box" | "pill" | "circle" | "diamond";
+
 export type DiagramSpec = {
   kind: "diagram";
   nodes: {
@@ -162,8 +185,21 @@ export type DiagramSpec = {
     w?: number;
     h?: number;
     dashed?: boolean;
+    /** Optional visual treatment. Defaults to a rectangle. */
+    shape?: DiagramNodeShape;
+    /** Optional second line, e.g. a symbol or a one-word role. */
+    sub?: string;
+    /** Draw this part in the accent colour to mark the key step. */
+    accent?: boolean;
   }[];
-  edges: { from: string; to: string; label?: string; dashed?: boolean }[];
+  edges: {
+    from: string;
+    to: string;
+    label?: string;
+    dashed?: boolean;
+    /** "arrow" (default) draws a head at the target, "line" does not. */
+    style?: "arrow" | "line";
+  }[];
 };
 
 /* ----------------------------- whiteboard -------------------------------- */

@@ -1,4 +1,4 @@
-import { getSettings } from "@/server/settings";
+import { getSettings, seedSettingsFromEnv } from "@/server/settings";
 import { resumePendingWork } from "@/server/pipeline/runner";
 import { seedFixtureCourse } from "@/server/fixture";
 
@@ -14,6 +14,7 @@ export function bootstrap(): Promise<void> {
   if (!globalBoot.__lumenBooted) {
     globalBoot.__lumenBooted = (async () => {
       try {
+        await seedSettingsFromEnv();
         await getSettings();
         await seedFixtureCourse();
         await resumePendingWork();

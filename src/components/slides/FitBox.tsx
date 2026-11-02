@@ -15,12 +15,15 @@ export function FitBox({
   className,
   focusId,
   focusType,
+  align = "left",
 }: {
   mode?: FitMode;
   children: ReactNode;
   className?: string;
   focusId?: string;
   focusType?: string;
+  /** "center" keeps a scaled-down block centred instead of stuck to the left. */
+  align?: "left" | "center";
 }) {
   const slotRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
@@ -55,8 +58,18 @@ export function FitBox({
     const observer = new ResizeObserver(measure);
     observer.observe(slot);
     observer.observe(content);
+    // Figures and KaTeX settle after first paint; a mutation observer catches
+    // them so the scale is right from the first frame the learner sees.
+    const mutation = new MutationObserver(measure);
+    mutation.observe(content, { childList: true, subtree: true, attributes: true });
+    const late = setTimeout(measure, 350);
+    if (typeof document !== "undefined" && "fonts" in document) {
+      void document.fonts.ready.then(measure);
+    }
     return () => {
       cancelAnimationFrame(frame);
+      clearTimeout(late);
+      mutation.disconnect();
       observer.disconnect();
     };
   }, [mode, children]);
@@ -67,10 +80,10 @@ export function FitBox({
         ref={contentRef}
         data-element-id={focusId}
         data-focus-type={focusType}
-        className="absolute left-0 top-0"
+        className={cn("absolute top-0", align === "center" ? "left-1/2" : "left-0")}
         style={{
-          transform: `scale(${scale})`,
-          transformOrigin: "top left",
+          transform: align === "center" ? `translateX(-50%) scale(${scale})` : `scale(${scale})`,
+          transformOrigin: align === "center" ? "top center" : "top left",
           width: mode === "text" ? "100%" : "max-content",
           maxWidth: mode === "text" ? "100%" : "none",
         }}

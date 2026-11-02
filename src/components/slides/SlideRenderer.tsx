@@ -17,10 +17,12 @@ const MobileSlideElement = memo(function MobileSlideElement({
   element,
   focused,
   lasered,
+  visible,
 }: {
   element: SlideElement;
   focused: boolean;
   lasered: boolean;
+  visible: boolean;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
@@ -43,13 +45,21 @@ const MobileSlideElement = memo(function MobileSlideElement({
     };
   }, []);
   return (
-    <div ref={ref} className="relative min-w-0 py-2" data-mobile-element={element.id}>
+    <div
+      ref={ref}
+      className={cn(
+        "relative min-w-0 py-1 transition-opacity duration-300",
+        visible ? "opacity-100" : "opacity-0",
+      )}
+      aria-hidden={!visible}
+      data-mobile-element={element.id}
+    >
       {(() => {
         switch (element.type) {
           case "heading":
             return <h2 className="type-h2 text-ink"><RichText text={element.text} as="span" /></h2>;
           case "paragraph":
-            return <RichText text={element.text} className="type-body text-ink" />;
+            return <RichText text={element.text} className="text-[15px] leading-[22px] text-ink" />;
           case "bullets":
             return (
               <ul className="space-y-2">
@@ -71,7 +81,11 @@ const MobileSlideElement = memo(function MobileSlideElement({
               </div>
             );
           case "figure":
-            return <div className="w-full min-w-0"><Figure spec={element.spec} caption={element.caption} /></div>;
+            return (
+              <div className="mx-auto w-full min-w-0 max-w-[88%] [&_svg]:max-h-[38vw]">
+                <Figure spec={element.spec} caption={element.caption} />
+              </div>
+            );
           case "callout":
             return <RichText text={element.text} className="type-body-sm border-t border-rule pt-3 text-muted" />;
           case "code":
@@ -95,18 +109,32 @@ const MobileSlideElement = memo(function MobileSlideElement({
   );
 });
 
+/**
+ * The phone stage is a fixed 4:3 frame, like a video. Every element is laid
+ * out from the start (unrevealed ones are just transparent), so the fitted
+ * scale stays constant instead of shrinking as the narration reveals more.
+ */
 function MobileSlide({ scene, state }: { scene: SlideScene; state: SlideState }) {
   return (
-    <div className="stage-scaler w-full border border-rule bg-stage p-5 md:hidden" data-mobile-slide>
-      <div className="flex flex-col gap-2">
-        {scene.elements.filter((element) => state.visible.has(element.id)).map((element) => (
-          <MobileSlideElement
-            key={element.id}
-            element={element}
-            focused={state.focus === element.id}
-            lasered={state.laser === element.id}
-          />
-        ))}
+    <div
+      className="stage-scaler relative w-full overflow-hidden border-y border-rule bg-stage md:hidden"
+      style={{ aspectRatio: "4 / 3" }}
+      data-mobile-slide
+    >
+      <div className="absolute inset-x-0 top-0 bottom-12 px-4 pt-3">
+        <FitBox mode="text">
+          <div className="flex flex-col gap-2">
+            {scene.elements.map((element) => (
+              <MobileSlideElement
+                key={element.id}
+                element={element}
+                visible={state.visible.has(element.id)}
+                focused={state.focus === element.id}
+                lasered={state.laser === element.id}
+              />
+            ))}
+          </div>
+        </FitBox>
       </div>
     </div>
   );

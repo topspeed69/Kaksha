@@ -19,6 +19,29 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       if (!status) return fail("not_found", "That course does not exist", 404);
       return ok(status, { headers: { "cache-control": "no-store" } });
     }
+    if (url.searchParams.get("view") === "plan") {
+      // Lightweight poll used by the plan editor while the planner works.
+      const [row] = await db
+        .select({
+          status: courses.status,
+          plan: courses.plan,
+          title: courses.title,
+          generator_label: courses.generator_label,
+        })
+        .from(courses)
+        .where(eq(courses.id, id))
+        .limit(1);
+      if (!row) return fail("not_found", "That course does not exist", 404);
+      return ok(
+        {
+          status: row.status,
+          plan: row.plan,
+          title: row.title,
+          generator_label: row.generator_label,
+        },
+        { headers: { "cache-control": "no-store" } },
+      );
+    }
     const detail = await getCourseDetail(id);
     if (!detail) return fail("not_found", "That course does not exist", 404);
     const withAudio = detail.course ? await attachAudio(detail.course) : null;

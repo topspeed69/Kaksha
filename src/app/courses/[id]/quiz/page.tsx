@@ -28,20 +28,16 @@ export default async function QuizPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="grid12">
       <div className="col-span-4 lg:col-span-12">
-        <nav className="type-label text-muted">
-          <Link href="/library" className="hover:text-ink">
-            Courses
-          </Link>{" "}
-          / <span className="text-ink">{course.title}</span>
-        </nav>
-        <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
-          <h1 className="type-h1 max-w-[24ch] text-ink">Assessment</h1>
-          <p className="type-body-sm text-muted">
-            Source: {course.source.label}
-          </p>
-        </div>
-        <div className="mt-4">
-          <CourseTabs courseId={id} active="quiz" />
+        <div className="watch-head">
+          <div className="flex min-w-0 items-center gap-3">
+            <Link href="/library" className="type-label hidden shrink-0 text-muted hover:text-ink md:inline">
+              Courses /
+            </Link>
+            <h1 className="course-title min-w-0 truncate text-ink" title={course.title}>{course.title}</h1>
+          </div>
+          <div className="mt-1 md:mt-0">
+            <CourseTabs courseId={id} active="quiz" />
+          </div>
         </div>
       </div>
       {!quizScene || quizScene.kind !== "quiz" ? (
@@ -57,7 +53,7 @@ export default async function QuizPage({ params }: { params: Promise<{ id: strin
           </Link>
         </div>
       ) : (
-        <div id="quiz" className="col-span-4 mt-8 lg:col-span-12">
+        <div id="quiz" className="col-span-4 mt-4 md:mt-8 lg:col-span-12">
           <QuizView
             course={course}
             scene={quizScene}

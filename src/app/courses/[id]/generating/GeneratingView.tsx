@@ -189,11 +189,18 @@ export function GeneratingView(props: {
                     <p className="type-body-sm text-ink">{scene.title}</p>
                     <p className="type-body-sm text-muted">{scene.error}</p>
                   </div>
-                  <Button variant="secondary" onClick={async () => {
-                    await api.post(`/api/courses/${props.courseId}/scenes/${scene.id}/retry`);
-                    setScenes((current) => current.map((item) => item.id === scene.id ? { ...item, status: "generating", error: null } : item));
-                    setStatus("generating");
-                  }}>Retry</Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="secondary" onClick={async () => {
+                      await api.post(`/api/courses/${props.courseId}/scenes/${scene.id}/retry`, {});
+                      setScenes((current) => current.map((item) => item.id === scene.id ? { ...item, status: "generating", error: null } : item));
+                      setStatus("generating");
+                    }}>Retry</Button>
+                    <Button variant="primary" onClick={async () => {
+                      await api.post(`/api/courses/${props.courseId}/scenes/${scene.id}/retry`, { strong: true });
+                      setScenes((current) => current.map((item) => item.id === scene.id ? { ...item, status: "generating", error: null } : item));
+                      setStatus("generating");
+                    }}>Use smarter model</Button>
+                  </div>
                 </li>
               ))}
             </ul>

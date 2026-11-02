@@ -9,6 +9,8 @@ import { Button, Tag, useToast } from "@/components/ui";
 import { RichText } from "@/components/ui/Latex";
 import {
   CaptionBar,
+  MobileTransport,
+  StageGestures,
   TransportBar,
   WhiteboardStepDetails,
   WhiteboardSteps,
@@ -64,79 +66,86 @@ export function WhiteboardView({ course }: { course: Course }) {
 
   return (
     <>
-      <div className="col-span-4 mt-8 lg:col-span-3">
-        <WhiteboardSteps />
-        <div className="mt-6">
-          <WhiteboardStepDetails />
-        </div>
-      </div>
-      <div className="col-span-4 mt-8 lg:col-span-6 lg:pl-6">
+      <div className="watch-primary -mx-4 md:mx-0 md:pt-4">
         {scene ? (
           <>
-            <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-rule pb-3">
-              <h2 className="type-h3 text-ink">{scene.title}</h2>
-              <div className="flex items-center gap-2">
-                <Tag tone="outline">Whiteboard</Tag>
-                {timeline ? (
-                  <span className="type-label text-muted">
-                    {scene.kind === "whiteboard" ? `${scene.steps.length} steps` : ""}
-                  </span>
-                ) : null}
+            <div data-player-root data-whiteboard-player className="player-root">
+              <div className="player-sticky">
+                <div className="stage-frame relative">
+                  <Stage scene={scene} />
+                  <StageGestures />
+                </div>
+                <MobileTransport sceneMarkers={false} />
+              </div>
+              <div className="hidden md:block md:pt-2">
+                <TransportBar sceneMarkers={false} />
+              </div>
+              <div className="px-4 pt-3 md:px-0">
+                <CaptionBar />
               </div>
             </div>
-            <div data-player-root data-whiteboard-player className="player-root mt-4 flex flex-col gap-3">
-              <div className="stage-frame">
-                <Stage scene={scene} />
+
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 pt-4 md:px-0">
+              <div className="min-w-0">
+                <p className="type-label text-accent">Whiteboard</p>
+                <h2 className="scene-title mt-1 text-ink">{scene.title}</h2>
               </div>
-              <p className="type-label-sm text-muted md:hidden">Swipe sideways to inspect the entire board.</p>
-              <CaptionBar />
-              <TransportBar sceneMarkers={false} />
+              {timeline && scene.kind === "whiteboard" ? (
+                <Tag tone="outline">{scene.steps.length} steps</Tag>
+              ) : null}
             </div>
-            <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-rule pt-4">
-              <Button variant="secondary" onClick={askPractice} disabled={busy}>
+
+            <div className="mx-4 mt-4 flex flex-col gap-3 border-t border-rule pt-4 md:mx-0 md:flex-row md:flex-wrap md:items-center">
+              <Button variant="secondary" onClick={askPractice} disabled={busy} className="max-md:w-full">
                 Generate a practice problem from this step
               </Button>
               <Link
                 href={`/courses/${course.id}/quiz`}
-                className="type-label inline-flex items-center gap-2 bg-accent px-6 py-3 text-[#fff] hover:bg-accent-hover"
+                className="type-label inline-flex min-h-11 items-center justify-center gap-2 bg-accent px-6 py-3 text-accent-ink hover:bg-accent-hover"
               >
                 Launch the quiz <ArrowRight size={14} strokeWidth={1.5} />
               </Link>
             </div>
             {practice ? (
-              <div className="mt-6 border border-rule bg-surface p-4">
+              <div className="mx-4 mt-6 border border-rule bg-surface p-4 md:mx-0">
                 <p className="type-label text-accent">Practice problem</p>
                 <RichText text={practice.prompt} className="type-body mt-2 text-ink" as="p" />
                 {practice.context ? (
-                  <RichText
-                    text={practice.context}
-                    className="type-body-sm mt-2 text-muted"
-                    as="div"
-                  />
+                  <RichText text={practice.context} className="type-body-sm mt-2 text-muted" as="div" />
                 ) : null}
                 {practice.expected_approach ? (
                   <details className="mt-3">
                     <summary className="type-label cursor-pointer text-ink">
                       Show one way to approach it
                     </summary>
-                    <RichText
-                      text={practice.expected_approach}
-                      className="type-body-sm mt-2 text-muted"
-                      as="p"
-                    />
+                    <RichText text={practice.expected_approach} className="type-body-sm mt-2 text-muted" as="p" />
                   </details>
                 ) : null}
               </div>
             ) : null}
+
+            {/* Steps under the board below the two-column breakpoint. */}
+            <div className="px-4 pt-6 md:px-0 lg:hidden">
+              <WhiteboardSteps />
+              <div className="mt-6">
+                <WhiteboardStepDetails />
+              </div>
+            </div>
+
             <Link
               href={`/courses/${course.id}/lecture`}
-              className="type-label mt-6 inline-flex items-center gap-2 border-b border-rule py-2 text-muted hover:border-accent hover:text-accent"
+              className="type-label mx-4 mt-6 inline-flex min-h-11 items-center gap-2 border-b border-rule py-2 text-muted hover:border-accent hover:text-accent md:mx-0"
             >
               <BookOpen size={14} strokeWidth={1.5} /> Back to the lecture
             </Link>
           </>
         ) : null}
       </div>
+
+      <aside className="watch-secondary hidden flex-col gap-6 pt-4 lg:flex">
+        <WhiteboardSteps />
+        <WhiteboardStepDetails />
+      </aside>
     </>
   );
 }

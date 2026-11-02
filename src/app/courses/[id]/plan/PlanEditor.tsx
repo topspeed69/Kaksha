@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowDown,
   ArrowRight,
@@ -56,6 +56,53 @@ export function PlanEditor(props: {
   const [busy, setBusy] = useState(false);
   const [confirmReplan, setConfirmReplan] = useState(false);
   const [dragScene, setDragScene] = useState<{ modIdx: number; scIdx: number } | null>(null);
+  const [liveStatus, setLiveStatus] = useState(props.status);
+  const [planningElapsed, setPlanningElapsed] = useState(0);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // The plan is written by a background job. Poll until it lands so the page
+  // fills in by itself instead of needing a manual reload.
+  useEffect(() => {
+    if (liveStatus !== "planning" && liveStatus !== "plan_ready") return;
+    if (plan) return;
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const res = await fetch(`/api/courses/${props.courseId}?view=plan`, {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const payload = (await res.json()) as {
+          status?: string;
+          plan?: CoursePlan | null;
+          title?: string;
+        };
+        if (cancelled) return;
+        if (payload.plan) {
+          setPlan(payload.plan);
+          setLiveStatus("plan_ready");
+          router.refresh();
+        } else if (payload.status) {
+          setLiveStatus(payload.status);
+        }
+      } catch {
+        /* keep polling */
+      }
+    };
+    void check();
+    pollRef.current = setInterval(check, 2000);
+    return () => {
+      cancelled = true;
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [liveStatus, plan, props.courseId, router]);
+
+  // A ticking timer so a slow plan does not look frozen.
+  useEffect(() => {
+    if (liveStatus !== "planning") return;
+    const timer = setInterval(() => setPlanningElapsed((value) => value + 1), 1000);
+    return () => clearInterval(timer);
+  }, [liveStatus]);
 
   const recomputeTotals = (draft: CoursePlan): CoursePlan => {
     draft.modules = draft.modules.map((m, mi) => {
@@ -136,7 +183,7 @@ export function PlanEditor(props: {
   return (
     <div className="grid12">
       <div className="col-span-4 lg:col-span-8">
-        <nav className="type-label text-muted">
+        <nav className="type-label hidden text-muted md:block">
           <a href="/library" className="hover:text-ink">
             Courses
           </a>{" "}
@@ -151,8 +198,8 @@ export function PlanEditor(props: {
         </div>
       </div>
 
-      <div className="col-span-4 lg:col-span-4 lg:pl-8 lg:pt-12">
-        <div className="sticky top-6 border border-rule p-6">
+      <div className="order-last col-span-4 lg:order-none lg:col-span-4 lg:pl-8 lg:pt-12">
+        <div className="border border-rule p-4 md:p-6 lg:sticky lg:top-6">
           <h2 className="type-label text-muted">Curriculum summary</h2>
           <dl className="mt-4 divide-y divide-[var(--rule)] border-y border-rule">
             {[
@@ -168,20 +215,22 @@ export function PlanEditor(props: {
               </div>
             ))}
           </dl>
-          <Button
-            variant="primary"
-            full
-            className="mt-6"
-            onClick={generate}
-            disabled={busy || !plan}
-          >
-            Generate lecture <ArrowRight size={14} strokeWidth={1.5} />
-          </Button>
+          <div className="hidden md:block">
+            <Button
+              variant="primary"
+              full
+              className="mt-6"
+              onClick={generate}
+              disabled={busy || !plan}
+            >
+              Generate lecture <ArrowRight size={14} strokeWidth={1.5} />
+            </Button>
+          </div>
           <div className="mt-4 flex flex-col gap-2">
             <button
               type="button"
               onClick={() => setConfirmReplan((value) => !value)}
-              className="type-label text-left text-muted underline decoration-[var(--rule)] hover:text-accent"
+              className="type-label text-left text-muted underline decoration-[var(--rule)] hover:text-accent max-md:min-h-11"
             >
               Change depth, time or background
             </button>
@@ -191,6 +240,13 @@ export function PlanEditor(props: {
               className="w-full justify-start"
             >
               Open the lecture
+            </LinkButton>
+            <LinkButton
+              href={`/courses/${props.courseId}/review`}
+              variant="ghost"
+              className="w-full justify-start"
+            >
+              Visual review of every slide
             </LinkButton>
           </div>
           {confirmReplan ? (
@@ -292,10 +348,25 @@ export function PlanEditor(props: {
           }
         />
         {!plan ? (
-          <p className="type-body mt-4 border border-rule bg-surface p-6 text-muted">
-            The plan is not ready yet. If this takes more than a minute, go back to the library and
-            open the course again.
-          </p>
+          <div className="type-body mt-4 border border-rule bg-surface p-6">
+            <p className="text-ink">
+              {liveStatus === "planning" ? "Planning your course…" : "The plan is not ready yet."}
+            </p>
+            <p className="mt-2 text-muted">
+              {liveStatus === "planning"
+                ? "Reading the topic, choosing the modules and writing the scene list. This page updates by itself."
+                : "If the planner stopped, re-plan the course from the panel on the right."}
+            </p>
+            {liveStatus === "planning" ? (
+              <div className="mt-4 flex items-center gap-3">
+                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-accent" />
+                <span className="type-label-sm text-muted">
+                  {Math.floor(planningElapsed / 60)}m {String(planningElapsed % 60).padStart(2, "0")}s
+                  elapsed
+                </span>
+              </div>
+            ) : null}
+          </div>
         ) : (
           <ol className="mt-4 divide-y divide-[var(--rule)] border-y border-rule">
             {plan.modules.map((moduleBlock, moduleIndex) => (
@@ -304,9 +375,11 @@ export function PlanEditor(props: {
                   <span className="type-num mt-1 text-accent">
                     {String(moduleIndex + 1).padStart(2, "0")}
                   </span>
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <input
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                      <textarea
+                        rows={1}
+                        onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }}
                         value={moduleBlock.title}
                         aria-label="Module title"
                         onChange={(event) =>
@@ -314,7 +387,7 @@ export function PlanEditor(props: {
                             draft.modules[moduleIndex].title = event.target.value;
                           })
                         }
-                        className="type-h3 w-full bg-transparent text-ink outline-none focus:border-b focus:border-accent"
+                        className="type-h3 w-full resize-none bg-transparent text-ink outline-none [field-sizing:content] focus:border-b focus:border-accent"
                       />
                       <div className="flex shrink-0 items-center gap-1">
                         <button
@@ -328,7 +401,7 @@ export function PlanEditor(props: {
                               draft.modules.splice(moduleIndex - 1, 0, moved);
                             })
                           }
-                          className="border border-rule p-1 text-muted hover:text-ink disabled:opacity-30"
+                          className="border border-rule p-2.5 text-muted md:p-1 hover:text-ink disabled:opacity-30"
                         >
                           <ArrowUp size={13} strokeWidth={1.5} />
                         </button>
@@ -343,7 +416,7 @@ export function PlanEditor(props: {
                               draft.modules.splice(moduleIndex + 1, 0, moved);
                             })
                           }
-                          className="border border-rule p-1 text-muted hover:text-ink disabled:opacity-30"
+                          className="border border-rule p-2.5 text-muted md:p-1 hover:text-ink disabled:opacity-30"
                         >
                           <ArrowDown size={13} strokeWidth={1.5} />
                         </button>
@@ -357,7 +430,7 @@ export function PlanEditor(props: {
                                 draft.modules.splice(moduleIndex, 1);
                               })
                             }
-                            className="border border-rule p-1 text-muted hover:border-accent hover:text-accent"
+                            className="border border-rule p-2.5 text-muted md:p-1 hover:border-accent hover:text-accent"
                           >
                             <Trash2 size={13} strokeWidth={1.5} />
                           </button>
@@ -365,7 +438,9 @@ export function PlanEditor(props: {
                       </div>
                     </div>
 
-                    <input
+                    <textarea
+                      rows={1}
+                      onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }}
                       value={moduleBlock.objective}
                       aria-label="Module objective"
                       onChange={(event) =>
@@ -373,7 +448,7 @@ export function PlanEditor(props: {
                           draft.modules[moduleIndex].objective = event.target.value;
                         })
                       }
-                      className="type-body-sm mt-1 w-full bg-transparent text-muted outline-none focus:border-b focus:border-accent"
+                      className="type-body-sm mt-1 w-full resize-none bg-transparent text-muted outline-none [field-sizing:content] focus:border-b focus:border-accent"
                     />
                     <div className="mt-3 flex flex-wrap items-center gap-3">
                       <span className="type-label text-muted">{moduleBlock.duration_min} min</span>
@@ -397,7 +472,7 @@ export function PlanEditor(props: {
                     <button
                       type="button"
                       onClick={() => setExpanded(expanded === moduleIndex ? null : moduleIndex)}
-                      className="type-label mt-3 flex items-center gap-2 text-muted hover:text-ink"
+                      className="type-label mt-3 flex items-center gap-2 text-muted hover:text-ink max-md:min-h-11"
                     >
                       <ChevronDown
                         size={14}
@@ -430,18 +505,20 @@ export function PlanEditor(props: {
                                 });
                                 setDragScene(null);
                               }}
-                              className="flex flex-wrap items-start gap-3 px-4 py-3 sm:flex-nowrap"
+                              className="flex flex-wrap items-start gap-x-3 gap-y-2 px-3 py-3 md:flex-nowrap md:px-4"
                             >
                               <GripVertical
                                 size={14}
                                 strokeWidth={1.5}
-                                className="mt-1.5 shrink-0 cursor-grab text-muted"
+                                className="mt-1.5 hidden shrink-0 cursor-grab text-muted md:block"
                               />
                               <span className="type-num mt-1 shrink-0 text-muted">
                                 {moduleIndex + 1}.{sceneIndex + 1}
                               </span>
-                              <div className="min-w-[180px] flex-1">
-                                <input
+                              <div className="min-w-0 flex-1 basis-[calc(100%-3rem)] md:basis-0">
+                                <textarea
+                                  rows={1}
+                                  onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }}
                                   value={scene.title}
                                   aria-label="Scene title"
                                   onChange={(event) =>
@@ -450,9 +527,11 @@ export function PlanEditor(props: {
                                         event.target.value;
                                     })
                                   }
-                                  className="type-body w-full bg-transparent text-ink outline-none focus:border-b focus:border-accent"
+                                  className="type-body w-full resize-none bg-transparent text-ink outline-none [field-sizing:content] focus:border-b focus:border-accent"
                                 />
-                                <input
+                                <textarea
+                                  rows={1}
+                                  onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }}
                                   value={scene.intent}
                                   aria-label="Scene intent"
                                   onChange={(event) =>
@@ -461,10 +540,10 @@ export function PlanEditor(props: {
                                         event.target.value;
                                     })
                                   }
-                                  className="type-body-sm mt-0.5 w-full bg-transparent text-muted outline-none focus:border-b focus:border-accent"
+                                  className="type-body-sm mt-0.5 w-full resize-none bg-transparent text-muted outline-none [field-sizing:content] focus:border-b focus:border-accent"
                                 />
                               </div>
-                              <div className="flex shrink-0 items-center gap-1.5">
+                              <div className="flex w-full flex-wrap items-center gap-1.5 md:w-auto md:shrink-0 md:flex-nowrap">
                                 <select
                                   aria-label="Scene type"
                                   value={scene.kind}
@@ -479,7 +558,7 @@ export function PlanEditor(props: {
                                         nextKind === "whiteboard" ? 120 : 90;
                                     })
                                   }
-                                  className="type-label border border-rule bg-bg px-2 py-1 text-ink"
+                                  className="type-label border border-rule bg-bg px-2 py-2 text-ink md:py-1"
                                 >
                                   <option value="slide">Slide</option>
                                   <option value="whiteboard">Whiteboard</option>
@@ -500,7 +579,7 @@ export function PlanEditor(props: {
                                       list.splice(sceneIndex - 1, 0, moved);
                                     })
                                   }
-                                  className="border border-rule p-1 text-muted hover:text-ink disabled:opacity-30"
+                                  className="border border-rule p-2.5 text-muted md:p-1 hover:text-ink disabled:opacity-30"
                                 >
                                   <ArrowUp size={12} strokeWidth={1.5} />
                                 </button>
@@ -516,7 +595,7 @@ export function PlanEditor(props: {
                                       list.splice(sceneIndex + 1, 0, moved);
                                     })
                                   }
-                                  className="border border-rule p-1 text-muted hover:text-ink disabled:opacity-30"
+                                  className="border border-rule p-2.5 text-muted md:p-1 hover:text-ink disabled:opacity-30"
                                 >
                                   <ArrowDown size={12} strokeWidth={1.5} />
                                 </button>
@@ -530,7 +609,7 @@ export function PlanEditor(props: {
                                         draft.modules[moduleIndex].scenes.splice(sceneIndex, 1);
                                       })
                                     }
-                                    className="border border-rule p-1 text-muted hover:border-accent hover:text-accent"
+                                    className="border border-rule p-2.5 text-muted md:p-1 hover:border-accent hover:text-accent"
                                   >
                                     <Trash2 size={12} strokeWidth={1.5} />
                                   </button>
@@ -589,6 +668,24 @@ export function PlanEditor(props: {
           </div>
         ) : null}
       </div>
+      {plan ? (
+        <div
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-rule bg-bg px-4 pt-3 md:hidden"
+          style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom))" }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="type-label text-muted">
+                {totalScenes} scenes · {totalMinutes} min
+              </p>
+              <p className="type-body-sm truncate text-ink">{props.title}</p>
+            </div>
+            <Button variant="primary" onClick={generate} disabled={busy}>
+              {busy ? "Working" : "Generate"} <ArrowRight size={14} strokeWidth={1.5} />
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

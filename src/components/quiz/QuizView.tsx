@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, BookOpen, Check, Save } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowRight, BookOpen, Check, ChevronDown, Save } from "lucide-react";
 import type { Course, GradeResult, Question, QuizAnswer, QuizScene } from "@/lib/dsl/types";
 import { api } from "@/lib/api";
 import { countWords, formatShortTime } from "@/lib/format";
@@ -56,33 +56,39 @@ export function QuizView({
   // Drafts are kept in localStorage so a refresh does not lose work.
   useEffect(() => {
     const key = `lumen.quiz.${courseId}.${scene.id}`;
-    try {
-      const stored = window.localStorage.getItem(key);
-      if (stored) setDraft(JSON.parse(stored) as Draft);
-    } catch {
-      /* ignore */
-    }
+    const timer = setTimeout(() => {
+      try {
+        const stored = window.localStorage.getItem(key);
+        if (stored) setDraft(JSON.parse(stored) as Draft);
+      } catch {
+        /* ignore */
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [courseId, scene.id]);
 
-  useEffect(() => {
-    const key = `lumen.quiz.${courseId}.${scene.id}`;
-    try {
-      window.localStorage.setItem(key, JSON.stringify(draft));
+  const update = useCallback(
+    (patch: Partial<{ choice_ids: string[]; text: string }>) => {
+      setDraft((current) => {
+        const next = {
+          ...current,
+          [question.id]: {
+            choice_ids: patch.choice_ids ?? current[question.id]?.choice_ids ?? [],
+            text: patch.text ?? current[question.id]?.text ?? "",
+          },
+        };
+        try {
+          const key = `lumen.quiz.${courseId}.${scene.id}`;
+          window.localStorage.setItem(key, JSON.stringify(next));
+        } catch {
+          /* ignore */
+        }
+        return next;
+      });
       setSavedAt(Date.now());
-    } catch {
-      /* ignore */
-    }
-  }, [draft, courseId, scene.id]);
-
-  const update = (patch: Partial<{ choice_ids: string[]; text: string }>) => {
-    setDraft((current) => ({
-      ...current,
-      [question.id]: {
-        choice_ids: patch.choice_ids ?? current[question.id]?.choice_ids ?? [],
-        text: patch.text ?? current[question.id]?.text ?? "",
-      },
-    }));
-  };
+    },
+    [courseId, scene.id, question.id],
+  );
 
   // Draft feedback is debounced by at least 1.5 s after typing stops.
   useEffect(() => {
@@ -147,17 +153,39 @@ export function QuizView({
     [answer.text],
   );
 
+  const [showList, setShowList] = useState(false);
+
   return (
     <div className="grid12">
-      <aside className="col-span-4 border-r border-rule pr-6 lg:col-span-3">
-        <div className="border-b border-rule pb-4">
-          <p className="type-label text-muted">Current score</p>
-          <p className="type-display text-ink">{score === null ? "—" : score}</p>
-          <p className="type-body-sm text-muted">
-            {answered} of {scene.questions.length} answered
-          </p>
+      <aside className="col-span-4 order-last border-rule lg:order-none lg:col-span-3 lg:border-r lg:pr-6">
+        <div className="flex items-start justify-between gap-3 border-b border-rule pb-4 lg:block">
+          <div>
+            <p className="type-label text-muted">Current score</p>
+            <p className="type-display text-ink">{score === null ? "—" : score}</p>
+            <p className="type-body-sm text-muted">
+              {answered} of {scene.questions.length} answered
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowList((value) => !value)}
+            aria-expanded={showList}
+            className="type-label flex items-center gap-2 border border-rule px-3 py-2 text-muted lg:hidden"
+          >
+            Questions
+            <ChevronDown
+              size={14}
+              strokeWidth={1.5}
+              className={cn("transition-transform", showList && "rotate-180")}
+            />
+          </button>
         </div>
-        <ol className="mt-4 divide-y divide-[var(--rule)] border-y border-rule">
+        <ol
+          className={cn(
+            "divide-y divide-[var(--rule)] border-y border-rule",
+            showList ? "block" : "hidden lg:block",
+          )}
+        >
           {scene.questions.map((item, itemIndex) => {
             const itemResult = results[item.id];
             const active = itemIndex === index;
@@ -214,7 +242,7 @@ export function QuizView({
         </div>
       </aside>
 
-      <div className="col-span-8 lg:col-span-9 lg:pl-8">
+      <div className="col-span-4 order-first lg:order-none lg:col-span-9 lg:pl-8">
         <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-rule pb-3">
           <p className="type-label text-accent">
             Question {String(index + 1).padStart(2, "0")} of{" "}

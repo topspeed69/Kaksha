@@ -11,7 +11,15 @@ import { providerFor } from "@/server/providers/llm";
 
 export const dynamic = "force-dynamic";
 
-const VALID_SLOTS = new Set<SlotName>(["default", "planner", "content", "reviewer", "grader", "tutor"]);
+const VALID_SLOTS = new Set<SlotName>([
+  "default",
+  "planner",
+  "content",
+  "reviewer",
+  "grader",
+  "tutor",
+  "escalation",
+]);
 const VALID_PROVIDERS = new Set<LlmProviderKind>(["openai", "nvidia", "anthropic", "ollama", "none"]);
 
 type PendingConfig = {
@@ -42,7 +50,7 @@ export async function POST(request: Request) {
     };
     const rawSlot = body.slot ?? "default";
     if (typeof rawSlot !== "string" || !VALID_SLOTS.has(rawSlot as SlotName)) {
-      return fail("invalid_slot", "Slot must be default, planner, content, grader, or tutor", 400);
+      return fail("invalid_slot", "Slot must be default, planner, content, reviewer, grader, tutor or escalation", 400);
     }
     const slot = rawSlot as SlotName;
     const settings = await getSettings();

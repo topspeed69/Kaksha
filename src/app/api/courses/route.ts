@@ -28,7 +28,7 @@ type CreateBody = {
   background?: unknown;
   minutes?: unknown;
   voice?: { id?: unknown; speed?: unknown };
-  options?: { derive_proofs?: unknown; embed_citations?: unknown; review_agent?: unknown; parallel_agents?: unknown; use_page_images?: unknown };
+  options?: { derive_proofs?: unknown; embed_citations?: unknown; review_agent?: unknown; parallel_agents?: unknown; use_page_images?: unknown; escalation_model?: unknown };
 };
 
 export async function POST(request: Request) {
@@ -85,8 +85,9 @@ export async function POST(request: Request) {
 
     const settings = await getSettings();
     if ((body.options?.review_agent !== undefined && typeof body.options.review_agent !== "boolean") ||
-        (body.options?.parallel_agents !== undefined && typeof body.options.parallel_agents !== "boolean")) {
-      return fail("invalid_options", "Review agent and parallel agents must be true or false", 400);
+        (body.options?.parallel_agents !== undefined && typeof body.options.parallel_agents !== "boolean") ||
+        (body.options?.escalation_model !== undefined && typeof body.options.escalation_model !== "boolean")) {
+      return fail("invalid_options", "Review agent, parallel agents and escalation must be true or false", 400);
     }
     const provider = ttsProviderFor(settings);
     const voices = await provider.voices().catch(() => []);
@@ -137,6 +138,8 @@ export async function POST(request: Request) {
             ? body.options.parallel_agents : settings.generation.parallel_agents_default,
           use_page_images: typeof body.options?.use_page_images === "boolean"
             ? body.options.use_page_images : true,
+          escalation_model: typeof body.options?.escalation_model === "boolean"
+            ? body.options.escalation_model : settings.generation.escalation_model_default,
         },
         source_kind: sourceKind,
         source_label: sourceLabel,

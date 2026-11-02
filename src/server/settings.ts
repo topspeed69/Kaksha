@@ -4,12 +4,21 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { settings } from "@/db/schema";
 import { ensureStorageDir, secretKeyPath } from "@/server/storage";
+import { safeFetch } from "@/server/safe-fetch";
 import { SECRET_CLEAR, SECRET_MASK } from "@/lib/provider-config";
 
 export { SECRET_CLEAR, SECRET_MASK };
 
 export type LlmProviderKind = "openai" | "nvidia" | "anthropic" | "ollama" | "none";
-export type SlotName = "default" | "planner" | "content" | "reviewer" | "grader" | "tutor";
+export type SlotName =
+  | "default"
+  | "planner"
+  | "content"
+  | "reviewer"
+  | "grader"
+  | "tutor"
+  /** Stronger model used for retries after two failures. */
+  | "escalation";
 
 export type SlotConfig = {
   provider: LlmProviderKind;
@@ -25,6 +34,8 @@ export type LumenSettings = {
   generation: {
     review_agent_default: boolean;
     parallel_agents_default: boolean;
+    /** Default for "escalate to a smarter model after two retries". */
+    escalation_model_default: boolean;
     /** Upper bound on independent scene writers. Ollama is capped to one. */
     max_parallel_scenes: number;
   };
@@ -55,11 +66,13 @@ export const DEFAULT_SETTINGS: LumenSettings = {
     reviewer: { provider: "none", model: "" },
     grader: { provider: "none", model: "" },
     tutor: { provider: "none", model: "" },
+    escalation: { provider: "none", model: "" },
   },
   generation: {
     review_agent_default: false,
     parallel_agents_default: false,
-    max_parallel_scenes: 2,
+    escalation_model_default: true,
+    max_parallel_scenes: 3,
   },
   tts: {
     provider: "none",
@@ -186,17 +199,242 @@ export function mergeSettings(base: LumenSettings, patch: unknown): LumenSetting
   merged.generation = {
     review_agent_default: merged.generation?.review_agent_default === true,
     parallel_agents_default: merged.generation?.parallel_agents_default === true,
+    escalation_model_default: merged.generation?.escalation_model_default !== false,
     max_parallel_scenes: Number.isFinite(workers)
-      ? Math.min(4, Math.max(2, Math.round(workers)))
-      : 2,
+      ? Math.min(6, Math.max(2, Math.round(workers)))
+      : 3,
   };
   return merged;
 }
 
 export async function getSettings(): Promise<LumenSettings> {
   const rows = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
-  if (!rows.length) return DEFAULT_SETTINGS;
-  return mergeSettings(DEFAULT_SETTINGS, decryptTree(rows[0].data));
+  if (!rows.length) return settingsFromEnv() ?? DEFAULT_SETTINGS;
+  const stored = mergeSettings(DEFAULT_SETTINGS, decryptTree(rows[0].data));
+  // Stored settings win. Environment only fills slots the user never configured,
+  // so a sandbox secret (API_KEY / BASE_URL / MODEL_NAME) works out of the box.
+  return fillFromEnv(stored);
+}
+
+/**
+ * Deployment-provided model credentials. Platforms commonly inject
+ * API_KEY / BASE_URL / MODEL_NAME (or the OPENAI_-prefixed equivalents).
+ * Every slot uses the same endpoint unless the user edits Settings.
+ */
+function envLlmConfig(): SlotConfig | null {
+  const apiKey = (
+    process.env.API_KEY ??
+    process.env.OPENAI_API_KEY ??
+    process.env.LUMEN_API_KEY ??
+    ""
+  ).trim();
+  const baseUrl = (
+    process.env.BASE_URL ??
+    process.env.OPENAI_BASE_URL ??
+    process.env.LUMEN_BASE_URL ??
+    ""
+  ).trim();
+  const model = (
+    process.env.MODEL_NAME ??
+    process.env.OPENAI_MODEL ??
+    process.env.LUMEN_MODEL ??
+    ""
+  ).trim();
+  if (!model || !apiKey) return null;
+  const nvidia = /nvidia/i.test(baseUrl) || /nvidia/i.test(model);
+  return {
+    provider: nvidia ? "nvidia" : "openai",
+    base_url: baseUrl || undefined,
+    api_key: apiKey,
+    model,
+    temperature: 0.3,
+  };
+}
+
+function sameSlot(config: SlotConfig, env: SlotConfig): boolean {
+  return (
+    config.provider === env.provider &&
+    (config.base_url ?? "") === (env.base_url ?? "") &&
+    config.model === env.model
+  );
+}
+
+/**
+ * Pick a stronger variant of the deployment model for escalation. Providers
+ * expose no capability metadata, so this uses well-known family conventions
+ * and otherwise falls back to the same endpoint's default model with a higher
+ * reasoning budget (temperature and max tokens are raised at the call site).
+ */
+export function escalationModel(model: string): string {
+  const m = model.trim();
+  if (!m) return m;
+  const override = (
+    process.env.ESCALATION_MODEL ??
+    process.env.STRONG_MODEL_NAME ??
+    ""
+  ).trim();
+  if (override) return override;
+  if (/^nvidia\//i.test(m)) {
+    if (/ultra|550b|253b/i.test(m)) return m;
+    return "nvidia/nemotron-3-ultra-550b-a55b";
+  }
+  if (/^gpt-4o-mini|^gpt-4\.1-mini|^gpt-5-mini/i.test(m)) return m.replace(/mini/i, "");
+  if (/^gpt-4o$/i.test(m)) return "gpt-4.1";
+  if (/haiku/i.test(m)) return m.replace(/haiku/i, "sonnet");
+  if (/^llama3\.2|^llama3\.1:8b|^qwen2\.5:7b/i.test(m)) return "llama3.1:70b";
+  return m;
+}
+
+/**
+ * Ask the provider which models this key can actually use and pick the
+ * strongest one. Avoids hard-coding an id that may be retired, and means the
+ * user never has to add a second model by hand.
+ */
+export async function discoverEscalationModel(
+  env: SlotConfig,
+): Promise<SlotConfig> {
+  const fallback: SlotConfig = { ...env, model: escalationModel(env.model) };
+  const base = env.base_url?.trim();
+  if (!base || !env.api_key) return fallback;
+  try {
+    // safeFetch blocks private ranges for material URLs and allows loopback
+    // only for providers, so a hostile base_url cannot be used to probe the
+    // network or the cloud metadata service.
+    const response = await safeFetch(`${base.replace(/\/+$/, "")}/models`, {
+      headers: { Authorization: `Bearer ${env.api_key}` },
+      signal: AbortSignal.timeout(8000),
+    }, { kind: "provider" });
+    if (!response.ok) return fallback;
+    const json = (await response.json()) as { data?: { id?: string }[] };
+    const ids = (json.data ?? [])
+      .map((item) => String(item.id ?? ""))
+      .filter((id) => id && id !== env.model);
+    if (!ids.length) return fallback;
+
+    const currentSize = Number(/(\d{2,3})b/i.exec(env.model)?.[1] ?? 0);
+    const score = (id: string): number => {
+      const lower = id.toLowerCase();
+      if (/embed|guard|safety|reward|parse|rerank|nano|flash|lightning|bolt|ocr|image|tts|speech|vision-embed/i.test(lower)) {
+        return -1;
+      }
+      const size = Number(/(\d{2,3})b/i.exec(lower)?.[1] ?? 0);
+      let value = size;
+      if (/ultra|reasoning|r1|thinking/i.test(lower)) value += 400;
+      if (/pro|opus|sonnet|large/i.test(lower)) value += 120;
+      if (/super/i.test(lower)) value += 60;
+      if (/mini|small|nano|lite/i.test(lower)) value -= 200;
+      // A same-family bigger sibling is the safest "smarter" choice.
+      const family = env.model.replace(/^[^/]+\//, "").split(/[-.]/)[0];
+      if (family && lower.includes(family)) value += 80;
+      if (size && currentSize && size < currentSize) value -= 300;
+      return value;
+    };
+    const ranked = ids
+      .map((id) => ({ id, value: score(id) }))
+      .filter((item) => item.value > 0)
+      .sort((a, b) => b.value - a.value);
+    return ranked.length ? { ...env, model: ranked[0].id } : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function settingsFromEnv(): LumenSettings | null {
+  const env = envLlmConfig();
+  if (!env) return null;
+  const slot = (): SlotConfig => ({ ...env });
+  const base: LumenSettings = {
+    ...DEFAULT_SETTINGS,
+    llm: {
+      default: slot(),
+      planner: slot(),
+      content: slot(),
+      reviewer: slot(),
+      grader: slot(),
+      tutor: slot(),
+      escalation: { ...slot(), model: escalationModel(env.model) },
+    },
+    generation: {
+      // The visual/independent reviewer is the point of this release: on by
+      // default, with the deterministic audit always running regardless.
+      review_agent_default: true,
+      parallel_agents_default: true,
+      escalation_model_default: true,
+      max_parallel_scenes: env.provider === "ollama" ? 1 : 3,
+    },
+    appearance: DEFAULT_SETTINGS.appearance,
+    embeddings: { provider: "local", model: "" },
+  };
+  return base;
+}
+
+/** Fill empty slots from the environment without overwriting user choices. */
+function fillFromEnv(stored: LumenSettings): LumenSettings {
+  const env = envLlmConfig();
+  if (!env) return stored;
+  let changed = false;
+  const llm = { ...stored.llm };
+  for (const slot of Object.keys(llm) as SlotName[]) {
+    const current = llm[slot];
+    if (!current || current.provider === "none" || !current.model.trim()) {
+      llm[slot] = { ...env, ...(current?.temperature !== undefined ? { temperature: current.temperature } : {}) };
+      changed = true;
+    }
+  }
+  return changed ? { ...stored, llm } : stored;
+}
+
+/**
+ * Persist environment credentials once so the Settings screen shows the real
+ * configuration, while keeping the key encrypted at rest.
+ */
+export async function seedSettingsFromEnv(): Promise<void> {
+  const env = envLlmConfig();
+  if (!env) return;
+  let rows = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+  if (!rows.length) {
+    const initial = settingsFromEnv();
+    if (!initial) return;
+    const encrypted = encryptTree(initial);
+    await db
+      .insert(settings)
+      .values({ id: 1, data: encrypted as Record<string, unknown> })
+      .onConflictDoNothing();
+    rows = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
+    if (!rows.length) return;
+  }
+
+  let stored = mergeSettings(DEFAULT_SETTINGS, decryptTree(rows[0].data));
+  const patch: Partial<Record<SlotName, SlotConfig>> = {};
+  for (const name of Object.keys(stored.llm) as SlotName[]) {
+    const current = stored.llm[name];
+    if (!current || current.provider === "none" || !current.model.trim()) {
+      patch[name] = name === "escalation"
+        ? { ...env, model: escalationModel(env.model) }
+        : env;
+    }
+  }
+  if (!sameSlot(stored.llm.default, env) || !stored.llm.default.api_key) {
+    patch.default = env;
+  }
+  if (Object.keys(patch).length) {
+    await saveSettings({ llm: patch });
+    stored = await getSettings();
+  }
+
+  // The escalation slot must point at a genuinely stronger model, never the
+  // same one as the default. Ask the provider's catalogue once, then persist.
+  const escalation = stored.llm.escalation;
+  if (
+    !escalation?.model ||
+    !escalation.api_key ||
+    escalation.model === stored.llm.default.model
+  ) {
+    const stronger = await discoverEscalationModel(env);
+    if (stronger.model !== stored.llm.default.model) {
+      await saveSettings({ llm: { escalation: stronger } });
+    }
+  }
 }
 
 export async function saveSettings(patch: unknown): Promise<LumenSettings> {
@@ -228,6 +466,7 @@ export function maskSettings(input: LumenSettings): LumenSettings {
       reviewer: mask(input.llm.reviewer),
       grader: mask(input.llm.grader),
       tutor: mask(input.llm.tutor),
+      escalation: mask(input.llm.escalation ?? input.llm.default),
     },
     tts: {
       ...input.tts,
