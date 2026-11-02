@@ -16,7 +16,7 @@ export async function GET() {
       voices,
       note:
         provider.name === "none"
-          ? "No speech service is configured. Lumen uses the browser voice when available, with captions timed from the text."
+          ? "No speech service is configured. Kaksha uses the browser voice when available, with captions timed from the text."
           : undefined,
     });
   } catch (error) {

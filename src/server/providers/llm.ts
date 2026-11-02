@@ -1,4 +1,4 @@
-import { resolveSlot, hasModel, type SlotConfig, type SlotName, type LumenSettings } from "@/server/settings";
+import { resolveSlot, hasModel, type SlotConfig, type SlotName, type KakshaSettings } from "@/server/settings";
 import { safeFetch } from "@/server/safe-fetch";
 import { ESCALATION_SYSTEM, retryPrompt } from "@/server/prompts";
 
@@ -484,7 +484,7 @@ export type SlotResolution = {
   available: boolean;
 };
 
-export function resolveLLM(all: LumenSettings, slot: SlotName): SlotResolution {
+export function resolveLLM(all: KakshaSettings, slot: SlotName): SlotResolution {
   const { config, slot: resolved } = resolveSlot(all, slot);
   return {
     provider: providerFor(config),

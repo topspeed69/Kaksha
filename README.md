@@ -1,6 +1,6 @@
-# Lumen · AI classroom
+# Kaksha · AI classroom
 
-Lumen turns a topic or a document into a narrated, animated lecture: slides, a whiteboard the AI
+Kaksha turns a topic or a document into a narrated, animated lecture: slides, a whiteboard the AI
 draws on step by step, and quizzes graded against a rubric.
 
 ```
@@ -43,7 +43,7 @@ Ollama's `/v1`), **Anthropic**, and **Ollama native** (`/api/chat` with `format:
 Local Ollama example: provider `Ollama (local)`, base address `http://127.0.0.1:11434`, model
 `llama3.2`. Local addresses are allowed for providers only — never for material links.
 
-With **no model configured**, Lumen still runs end to end: the outline, scenes and quizzes are
+With **no model configured**, Kaksha still runs end to end: the outline, scenes and quizzes are
 drafted from your material by the built-in planner and writer, and short answers are marked by
 keyword comparison with the reference answer. Every such course says so on the plan screen, and the
 grader tells you its confidence is low. Nothing pretends to be model output.
@@ -82,7 +82,7 @@ escalated rather than repeated.
 scene fails twice, that one request goes to the dedicated **Escalation** model
 slot with the accumulated failure list. It also appears as the "Use smarter
 model" button on any failed scene. No extra provider is needed: when the
-deployment supplies `MODEL_NAME` / `BASE_URL` / `API_KEY`, Lumen derives a
+deployment supplies `MODEL_NAME` / `BASE_URL` / `API_KEY`, Kaksha derives a
 stronger variant of the same provider's family automatically (or you can pick
 one in Settings → 01 Models). A stronger model is only called when a scene
 actually fails, so a clean generation costs nothing extra.
@@ -98,7 +98,7 @@ click.
 
 * `Captions only` (default): narration is shown as captions, timed from the text at 150 words per
   minute.
-* `Kokoro over HTTP`: point Lumen at a Kokoro service that exposes an OpenAI-compatible
+* `Kokoro over HTTP`: point Kaksha at a Kokoro service that exposes an OpenAI-compatible
   `/v1/audio/speech`, for example [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI)
   (`docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu`), then set the address to
   `http://127.0.0.1:8880/v1/audio/speech`. Segments are cached by content hash, so nothing is
@@ -131,6 +131,6 @@ npm run lint
   reply time you see is a real round trip.
 * **A scene failed** — the Generating screen shows the reason and a Retry button; only that scene is
   re-run.
-* **A PDF produced no text** — it is probably a scan. Lumen tells you in the file card; run OCR
+* **A PDF produced no text** — it is probably a scan. Kaksha tells you in the file card; run OCR
   before uploading.
 * **Everything looks unstyled after a theme change** — reload once; the theme is stored per browser.

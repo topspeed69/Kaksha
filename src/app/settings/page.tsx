@@ -17,7 +17,7 @@ import {
   cn,
   useToast,
 } from "@/components/ui";
-import type { LumenSettings, SlotName } from "@/server/settings";
+import type { KakshaSettings, SlotName } from "@/server/settings";
 import { SECRET_CLEAR, SECRET_MASK } from "@/lib/provider-config";
 
 const SLOTS: SlotName[] = ["default", "planner", "content", "reviewer", "grader", "tutor", "escalation"];
@@ -100,7 +100,7 @@ function SecretField({
 export default function SettingsPage() {
   const toast = useToast();
   const { appearance, update } = useAppearance();
-  const [settings, setSettings] = useState<LumenSettings | null>(null);
+  const [settings, setSettings] = useState<KakshaSettings | null>(null);
   const [busy, setBusy] = useState(false);
   const [modelsOpen, setModelsOpen] = useState(true);
   const [openSlot, setOpenSlot] = useState<SlotName | null>("default");
@@ -110,7 +110,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     void api
-      .get<{ settings: LumenSettings }>("/api/settings")
+      .get<{ settings: KakshaSettings }>("/api/settings")
       .then((data) => setSettings(data.settings))
       .catch((error) => toast((error as Error).message, "error"));
   }, [toast]);
@@ -119,7 +119,7 @@ export default function SettingsPage() {
     if (!settings) return;
     setBusy(true);
     try {
-      const result = await api.put<{ settings: LumenSettings }>("/api/settings", settings);
+      const result = await api.put<{ settings: KakshaSettings }>("/api/settings", settings);
       setSettings(result.settings);
       toast("Settings saved");
     } catch (error) {
@@ -163,7 +163,7 @@ export default function SettingsPage() {
       <div className="col-span-4 lg:col-span-8">
         <h1 className="type-display text-ink">Settings</h1>
         <p className="type-body-lg measure mt-4 max-w-[56ch] text-muted">
-          Lumen runs on your machine. Provider keys are stored encrypted on the server and never sent
+          Kaksha runs on your machine. Provider keys are stored encrypted on the server and never sent
           back to this page.
         </p>
       </div>
@@ -404,7 +404,7 @@ export default function SettingsPage() {
         <NumberedSection
           index="03"
           title="Speech"
-          hint="Kokoro runs as a service you host. Without it, Lumen uses the browser voice when available, with captions timed from the text."
+          hint="Kokoro runs as a service you host. Without it, Kaksha uses the browser voice when available, with captions timed from the text."
         />
         <div className="mt-4 space-y-4">
           <Select

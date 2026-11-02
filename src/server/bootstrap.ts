@@ -3,7 +3,7 @@ import { resumePendingWork } from "@/server/pipeline/runner";
 import { seedFixtureCourse } from "@/server/fixture";
 
 const globalBoot = globalThis as typeof globalThis & {
-  __lumenBooted?: Promise<void>;
+  __kakshaBooted?: Promise<void>;
 };
 
 /**
@@ -11,18 +11,18 @@ const globalBoot = globalThis as typeof globalThis & {
  * something to play, and picks up generation work interrupted by a restart.
  */
 export function bootstrap(): Promise<void> {
-  if (!globalBoot.__lumenBooted) {
-    globalBoot.__lumenBooted = (async () => {
+  if (!globalBoot.__kakshaBooted) {
+    globalBoot.__kakshaBooted = (async () => {
       try {
         await seedSettingsFromEnv();
         await getSettings();
         await seedFixtureCourse();
         await resumePendingWork();
       } catch (error) {
-        globalBoot.__lumenBooted = undefined;
-        console.error("[lumen] bootstrap failed", (error as Error).message);
+        globalBoot.__kakshaBooted = undefined;
+        console.error("[kaksha] bootstrap failed", (error as Error).message);
       }
     })();
   }
-  return globalBoot.__lumenBooted;
+  return globalBoot.__kakshaBooted;
 }

@@ -10,7 +10,7 @@ export type PlayerPayload = {
 
 type CacheEntry = PlayerPayload & { savedAt: number };
 
-const DB_NAME = "lumen-client";
+const DB_NAME = "kaksha-client";
 const STORE = "course-player";
 const MEMORY_MAX = 12;
 const memory = new Map<string, CacheEntry>();

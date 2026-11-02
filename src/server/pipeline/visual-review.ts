@@ -4,7 +4,7 @@ import {
   resolveLLM,
   type LLMImage,
 } from "@/server/providers/llm";
-import type { LumenSettings } from "@/server/settings";
+import type { KakshaSettings } from "@/server/settings";
 
 export type VisualArea =
   | "overflow"
@@ -383,7 +383,7 @@ export async function visualReview(input: {
   scene: Scene;
   topic: string;
   depth?: string;
-  settings: LumenSettings;
+  settings: KakshaSettings;
   screenshot?: { mime: "image/png" | "image/jpeg"; data: string } | null;
   /** Skip the model and return the deterministic audit only. */
   deterministicOnly?: boolean;

@@ -6,7 +6,7 @@ import type {
   PlanModule,
   PlanSceneOutline,
 } from "@/lib/dsl/types";
-import type { LumenSettings } from "@/server/settings";
+import type { KakshaSettings } from "@/server/settings";
 import { resolveLLM, type LLMImage } from "@/server/providers/llm";
 import { generateStructured } from "@/server/providers/llm";
 import { plannerPrompt } from "@/server/prompts";
@@ -371,7 +371,7 @@ export type PlanOutcome = {
 };
 
 export async function buildPlan(input: {
-  settings: LumenSettings;
+  settings: KakshaSettings;
   topic: string;
   title: string;
   depth: Depth;
@@ -435,7 +435,7 @@ export async function buildPlan(input: {
     }
   } else {
     notes.push(
-      "No language model is configured, so the outline was drafted by Lumen's built-in planner from your topic and material.",
+      "No language model is configured, so the outline was drafted by Kaksha's built-in planner from your topic and material.",
     );
   }
   const plan = fitPlanToBudget(
@@ -452,7 +452,7 @@ export async function buildPlan(input: {
     plan,
     title: input.title,
     modelled: false,
-    generatorLabel: "Drafted with Lumen's built-in planner (no language model configured)",
+    generatorLabel: "Drafted with Kaksha's built-in planner (no language model configured)",
     notes,
   };
 }

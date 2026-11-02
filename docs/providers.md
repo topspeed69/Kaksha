@@ -1,6 +1,6 @@
 # Providers
 
-Lumen talks to models and speech engines through small interfaces, so anything that speaks the
+Kaksha talks to models and speech engines through small interfaces, so anything that speaks the
 protocol can be swapped in from Settings.
 
 ## Language models
@@ -55,7 +55,7 @@ mangle JSON usually succeed on the second try.
 
 ### Without a model
 
-Lumen still works end to end. The built-in planner writes the outline from your topic and material,
+Kaksha still works end to end. The built-in planner writes the outline from your topic and material,
 the built-in writer drafts each scene, and short answers are marked by comparing your words with the
 reference answer. Every such course says so on the plan screen, and the grader reports a low
 confidence and offers the reference answer. Nothing pretends to be model output.

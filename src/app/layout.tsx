@@ -9,9 +9,9 @@ import { ThemeProvider } from "@/lib/theme";
 import { ToastProvider } from "@/components/ui";
 
 export const metadata: Metadata = {
-  title: "Lumen · AI classroom",
+  title: "Kaksha · AI classroom",
   description:
-    "Lumen turns a topic or a paper into a narrated, animated lecture with a whiteboard and graded quizzes.",
+    "Kaksha turns a topic or a paper into a narrated, animated lecture with a whiteboard and graded quizzes.",
 };
 
 export const viewport: Viewport = {
@@ -30,7 +30,7 @@ export const viewport: Viewport = {
  * document head instead of after hydration.
  */
 const themeBootScript = `(function(){try{
-var s=localStorage.getItem("lumen.appearance");
+var s=localStorage.getItem("kaksha.appearance")||localStorage.getItem("lumen.appearance");
 var t=(s&&JSON.parse(s).theme)||"system";
 var dark=t==="dark"||(t==="system"&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var r=document.documentElement;

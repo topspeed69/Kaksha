@@ -28,8 +28,8 @@ const request: LLMRequest = {
 
 describe("bounded PDF preparation", () => {
   it("only processes the first configured pages and reports the real total", async () => {
-    const previous = process.env.LUMEN_MAX_PDF_PAGES;
-    process.env.LUMEN_MAX_PDF_PAGES = "2";
+    const previous = process.env.KAKSHA_MAX_PDF_PAGES;
+    process.env.KAKSHA_MAX_PDF_PAGES = "2";
     try {
       const pdf = makeTestPdf(4);
       const result = await parseLimitedPdf(pdf, "paper.pdf");
@@ -40,23 +40,23 @@ describe("bounded PDF preparation", () => {
       expect(result.warnings.some((warning) => warning.includes("first 2 of 4"))).toBe(true);
       expect(JSON.stringify(result)).not.toContain("Page 3 examines");
     } finally {
-      if (previous === undefined) delete process.env.LUMEN_MAX_PDF_PAGES;
-      else process.env.LUMEN_MAX_PDF_PAGES = previous;
+      if (previous === undefined) delete process.env.KAKSHA_MAX_PDF_PAGES;
+      else process.env.KAKSHA_MAX_PDF_PAGES = previous;
     }
   });
 
   it("bounds misconfigured limits instead of processing unlimited pages", () => {
-    const previous = process.env.LUMEN_MAX_PDF_PAGES;
+    const previous = process.env.KAKSHA_MAX_PDF_PAGES;
     try {
-      process.env.LUMEN_MAX_PDF_PAGES = "9999999";
+      process.env.KAKSHA_MAX_PDF_PAGES = "9999999";
       expect(maxPdfPages()).toBe(80);
-      process.env.LUMEN_MAX_PDF_PAGES = "NaN";
+      process.env.KAKSHA_MAX_PDF_PAGES = "NaN";
       expect(maxPdfPages()).toBe(24);
-      process.env.LUMEN_MAX_PDF_PAGES = "0";
+      process.env.KAKSHA_MAX_PDF_PAGES = "0";
       expect(maxPdfPages()).toBe(24);
     } finally {
-      if (previous === undefined) delete process.env.LUMEN_MAX_PDF_PAGES;
-      else process.env.LUMEN_MAX_PDF_PAGES = previous;
+      if (previous === undefined) delete process.env.KAKSHA_MAX_PDF_PAGES;
+      else process.env.KAKSHA_MAX_PDF_PAGES = previous;
     }
   });
 

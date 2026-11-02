@@ -1,16 +1,16 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
-export const ACCESS_COOKIE_NAME = "lumen_access";
+export const ACCESS_COOKIE_NAME = "kaksha_access";
 
 function signingSecret(accessCode: string): string {
-  const envSecret = process.env.LUMEN_SECRET_KEY?.trim();
-  return envSecret && envSecret.length >= 16 ? envSecret : `lumen-fallback-key:${accessCode}`;
+  const envSecret = process.env.KAKSHA_SECRET_KEY?.trim();
+  return envSecret && envSecret.length >= 16 ? envSecret : `kaksha-fallback-key:${accessCode}`;
 }
 
 export function signAccessCookie(accessCode: string): string {
   const codeDigest = createHash("sha256").update(accessCode, "utf8").digest("hex");
   const mac = createHmac("sha256", signingSecret(accessCode))
-    .update(`lumen-access-v1|${codeDigest}`)
+    .update(`kaksha-access-v1|${codeDigest}`)
     .digest("base64url");
   return `v1.${mac}`;
 }

@@ -58,7 +58,7 @@ export default function UnlockPage() {
     <div className="grid12 py-12">
       <div className="col-span-4 lg:col-span-7">
         <p className="type-label text-accent">Restricted access</p>
-        <h1 className="type-display mt-2 text-ink">Unlock Lumen</h1>
+        <h1 className="type-display mt-2 text-ink">Unlock Kaksha</h1>
         <Suspense fallback={null}>
           <UnlockForm />
         </Suspense>

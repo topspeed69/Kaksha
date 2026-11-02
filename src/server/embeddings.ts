@@ -1,4 +1,4 @@
-import type { LumenSettings } from "@/server/settings";
+import type { KakshaSettings } from "@/server/settings";
 import { safeFetch } from "@/server/safe-fetch";
 
 export type Embedded = { vector: number[]; model: string };
@@ -47,7 +47,7 @@ export function cosine(a: number[], b: number[]): number {
 }
 
 export async function embedText(
-  settings: LumenSettings,
+  settings: KakshaSettings,
   text: string,
 ): Promise<Embedded> {
   const config = settings.embeddings;

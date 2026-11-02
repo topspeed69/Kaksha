@@ -29,7 +29,7 @@ export type SlotConfig = {
   max_tokens?: number;
 };
 
-export type LumenSettings = {
+export type KakshaSettings = {
   llm: Record<SlotName, SlotConfig>;
   generation: {
     review_agent_default: boolean;
@@ -58,7 +58,7 @@ export type LumenSettings = {
   };
 };
 
-export const DEFAULT_SETTINGS: LumenSettings = {
+export const DEFAULT_SETTINGS: KakshaSettings = {
   llm: {
     default: { provider: "none", model: "" },
     planner: { provider: "none", model: "" },
@@ -90,9 +90,9 @@ let cachedKey: Buffer | null = null;
 
 function key(): Buffer {
   if (cachedKey) return cachedKey;
-  const envKey = process.env.LUMEN_SECRET_KEY;
+  const envKey = process.env.KAKSHA_SECRET_KEY;
   if (envKey && envKey.length >= 16) {
-    cachedKey = scryptSync(envKey, "lumen-settings-salt", 32);
+    cachedKey = scryptSync(envKey, "kaksha-settings-salt", 32);
     return cachedKey;
   }
   ensureStorageDir();
@@ -174,7 +174,7 @@ function clampSpeed(value: unknown, fallback = 1): number {
   return Number.isFinite(n) ? Math.min(2, Math.max(0.75, n)) : fallback;
 }
 
-export function mergeSettings(base: LumenSettings, patch: unknown): LumenSettings {
+export function mergeSettings(base: KakshaSettings, patch: unknown): KakshaSettings {
   const walk = (b: unknown, p: unknown): unknown => {
     if (p === null || p === undefined) return b;
     if (typeof b !== "object" || b === null) return p;
@@ -193,7 +193,7 @@ export function mergeSettings(base: LumenSettings, patch: unknown): LumenSetting
     }
     return out;
   };
-  const merged = walk(base, patch) as LumenSettings;
+  const merged = walk(base, patch) as KakshaSettings;
   merged.tts.default_speed = clampSpeed(merged.tts.default_speed, 1);
   const workers = Number(merged.generation?.max_parallel_scenes);
   merged.generation = {
@@ -207,7 +207,7 @@ export function mergeSettings(base: LumenSettings, patch: unknown): LumenSetting
   return merged;
 }
 
-export async function getSettings(): Promise<LumenSettings> {
+export async function getSettings(): Promise<KakshaSettings> {
   const rows = await db.select().from(settings).where(eq(settings.id, 1)).limit(1);
   if (!rows.length) return settingsFromEnv() ?? DEFAULT_SETTINGS;
   const stored = mergeSettings(DEFAULT_SETTINGS, decryptTree(rows[0].data));
@@ -225,19 +225,19 @@ function envLlmConfig(): SlotConfig | null {
   const apiKey = (
     process.env.API_KEY ??
     process.env.OPENAI_API_KEY ??
-    process.env.LUMEN_API_KEY ??
+    process.env.KAKSHA_API_KEY ??
     ""
   ).trim();
   const baseUrl = (
     process.env.BASE_URL ??
     process.env.OPENAI_BASE_URL ??
-    process.env.LUMEN_BASE_URL ??
+    process.env.KAKSHA_BASE_URL ??
     ""
   ).trim();
   const model = (
     process.env.MODEL_NAME ??
     process.env.OPENAI_MODEL ??
-    process.env.LUMEN_MODEL ??
+    process.env.KAKSHA_MODEL ??
     ""
   ).trim();
   if (!model || !apiKey) return null;
@@ -339,11 +339,11 @@ export async function discoverEscalationModel(
   }
 }
 
-function settingsFromEnv(): LumenSettings | null {
+function settingsFromEnv(): KakshaSettings | null {
   const env = envLlmConfig();
   if (!env) return null;
   const slot = (): SlotConfig => ({ ...env });
-  const base: LumenSettings = {
+  const base: KakshaSettings = {
     ...DEFAULT_SETTINGS,
     llm: {
       default: slot(),
@@ -369,7 +369,7 @@ function settingsFromEnv(): LumenSettings | null {
 }
 
 /** Fill empty slots from the environment without overwriting user choices. */
-function fillFromEnv(stored: LumenSettings): LumenSettings {
+function fillFromEnv(stored: KakshaSettings): KakshaSettings {
   const env = envLlmConfig();
   if (!env) return stored;
   let changed = false;
@@ -437,7 +437,7 @@ export async function seedSettingsFromEnv(): Promise<void> {
   }
 }
 
-export async function saveSettings(patch: unknown): Promise<LumenSettings> {
+export async function saveSettings(patch: unknown): Promise<KakshaSettings> {
   const current = await getSettings();
   const next = mergeSettings(current, patch);
   const encrypted = encryptTree(next);
@@ -452,7 +452,7 @@ export async function saveSettings(patch: unknown): Promise<LumenSettings> {
 }
 
 /** Keys are write-only: responses never carry them back to the browser. */
-export function maskSettings(input: LumenSettings): LumenSettings {
+export function maskSettings(input: KakshaSettings): KakshaSettings {
   const mask = (slot: SlotConfig): SlotConfig => ({
     ...slot,
     api_key: slot.api_key ? SECRET_MASK : "",
@@ -480,7 +480,7 @@ export function maskSettings(input: LumenSettings): LumenSettings {
 
 /** Resolve the effective config for a slot, falling back to `default`. */
 export function resolveSlot(
-  all: LumenSettings,
+  all: KakshaSettings,
   slot: SlotName,
 ): { config: SlotConfig; slot: SlotName } {
   const wanted = all.llm[slot];

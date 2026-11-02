@@ -108,7 +108,7 @@ function readLocalProgress(
 ): { sceneIndex: number; tMs: number; scenesDone: number[] } | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(`lumen.progress.${courseId}`);
+    const raw = window.localStorage.getItem(`kaksha.progress.${courseId}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as {
       scene_index?: number;
@@ -135,7 +135,7 @@ function writeLocalProgress(
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(
-      `lumen.progress.${courseId}`,
+      `kaksha.progress.${courseId}`,
       JSON.stringify({
         scene_index: sceneIndex,
         t_ms: Math.round(tMs),

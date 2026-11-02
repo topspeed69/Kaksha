@@ -12,7 +12,7 @@ export async function seedFixtureCourse(): Promise<string | null> {
   const existing = await db
     .select({ id: courses.id })
     .from(courses)
-    .where(eq(courses.source_label, "Lumen reference fixture"))
+    .where(eq(courses.source_label, "Kaksha reference fixture"))
     .limit(1);
   if (existing.length) return existing[0].id;
   const course = buildFixtureCourse();
@@ -62,7 +62,7 @@ export async function seedFixtureCourse(): Promise<string | null> {
       voice_id: "captions",
       voice_speed: 1,
       source_kind: "topic",
-      source_label: "Lumen reference fixture",
+      source_label: "Kaksha reference fixture",
       plan,
       document: course,
       generator_label: "Hand authored reference fixture",

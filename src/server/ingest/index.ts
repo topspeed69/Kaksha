@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import type { SourceKind } from "@/lib/dsl/types";
 import { db } from "@/db";
 import { chunks, materials } from "@/db/schema";
-import type { LumenSettings } from "@/server/settings";
+import type { KakshaSettings } from "@/server/settings";
 import { embedText } from "@/server/embeddings";
 import { ensureStorageDir, uploadPath } from "@/server/storage";
 import { checkUrl } from "./ssrf";
@@ -22,7 +22,7 @@ export type ParsedDocument = {
   pdfBuffer?: Buffer;
 };
 
-const MAX_UPLOAD_BYTES = Number(process.env.LUMEN_MAX_UPLOAD_BYTES ?? 150 * 1024 * 1024);
+const MAX_UPLOAD_BYTES = Number(process.env.KAKSHA_MAX_UPLOAD_BYTES ?? 150 * 1024 * 1024);
 const MAX_URL_BYTES = 15 * 1024 * 1024;
 const MAX_EPUB_UNCOMPRESSED_BYTES = 25 * 1024 * 1024;
 const MAX_EPUB_FILES = 250;
@@ -250,7 +250,7 @@ async function parseUrl(rawUrl: string): Promise<ParsedDocument> {
       url,
       {
         headers: {
-          "user-agent": "Lumen/1.0 (course builder)",
+          "user-agent": "Kaksha/1.0 (course builder)",
           accept: "text/html,application/xhtml+xml,text/plain,text/markdown,application/pdf;q=0.9",
         },
         redirect: "manual",
@@ -440,7 +440,7 @@ async function persist(
   label: string,
   kind: SourceKind,
   parsed: ParsedDocument,
-  settings: LumenSettings,
+  settings: KakshaSettings,
   pages?: number,
   filePath?: string,
 ): Promise<string> {
@@ -505,7 +505,7 @@ async function persist(
 
 export async function ingestFile(options: {
   file: File;
-  settings: LumenSettings;
+  settings: KakshaSettings;
 }): Promise<IngestOutcome> {
   const { file, settings } = options;
   if (file.size === 0) {
@@ -534,7 +534,7 @@ export async function ingestFile(options: {
       status: "failed",
       warnings: [],
       error:
-        "That file looks like a binary format that Lumen cannot read. Upload a PDF, EPUB, Markdown or plain-text file.",
+        "That file looks like a binary format that Kaksha cannot read. Upload a PDF, EPUB, Markdown or plain-text file.",
     };
   }
   let storedPath: string | undefined;
@@ -575,7 +575,7 @@ export async function ingestFile(options: {
 
 export async function ingestUrl(options: {
   url: string;
-  settings: LumenSettings;
+  settings: KakshaSettings;
 }): Promise<IngestOutcome> {
   let filePath: string | undefined;
   try {
@@ -603,7 +603,7 @@ export async function ingestUrl(options: {
 export async function ingestText(options: {
   label: string;
   text: string;
-  settings: LumenSettings;
+  settings: KakshaSettings;
   kind?: "markdown" | "text" | "syllabus";
 }): Promise<IngestOutcome> {
   const cleaned = sanitizeText(options.text);

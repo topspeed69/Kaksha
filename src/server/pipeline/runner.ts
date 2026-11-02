@@ -8,7 +8,7 @@ import { buildCourseDocument, isUuid, planSceneDbIndex, sourceChunksFor } from "
 import { generateScene, speakable, type SourceChunk } from "./scenes";
 import { buildPlan, moduleCount } from "./planner";
 import { synthesizeSegment, ttsProviderFor } from "@/server/providers/tts";
-import { getSettings, hasModel, resolveSlot, type LumenSettings } from "@/server/settings";
+import { getSettings, hasModel, resolveSlot, type KakshaSettings } from "@/server/settings";
 import { resolveLLM } from "@/server/providers/llm";
 import { imagesForChunks } from "@/server/ingest/pdf";
 import { reviewScene } from "./review";
@@ -39,17 +39,17 @@ export type GenerationEvent =
 type Listener = (event: GenerationEvent) => void;
 
 const globalBus = globalThis as typeof globalThis & {
-  __lumenListeners?: Map<string, Set<Listener>>;
-  __lumenRunningCourses?: Set<string>;
+  __kakshaListeners?: Map<string, Set<Listener>>;
+  __kakshaRunningCourses?: Set<string>;
 };
 
 const listeners: Map<string, Set<Listener>> =
-  globalBus.__lumenListeners ?? new Map();
-globalBus.__lumenListeners = listeners;
+  globalBus.__kakshaListeners ?? new Map();
+globalBus.__kakshaListeners = listeners;
 
 const runningCourses: Set<string> =
-  globalBus.__lumenRunningCourses ?? new Set();
-globalBus.__lumenRunningCourses = runningCourses;
+  globalBus.__kakshaRunningCourses ?? new Set();
+globalBus.__kakshaRunningCourses = runningCourses;
 
 export function subscribe(courseId: string, listener: Listener): () => void {
   const set = listeners.get(courseId) ?? new Set<Listener>();
@@ -229,7 +229,7 @@ export async function runPlanning(courseId: string): Promise<void> {
 /* ------------------------------- generation ------------------------------- */
 
 /** Parallel "agents" are independent scene writers, never hidden model calls. */
-export function sceneConcurrency(options: GenerationOptions, settings: LumenSettings): number {
+export function sceneConcurrency(options: GenerationOptions, settings: KakshaSettings): number {
   if (options.parallel_agents !== true) return 1;
   const content = resolveSlot(settings, "content").config;
   // A local Ollama or no model should not queue competing writes or be called
@@ -237,12 +237,12 @@ export function sceneConcurrency(options: GenerationOptions, settings: LumenSett
   if (content.provider === "ollama" || content.provider === "none" || !content.model) return 1;
   const requested = Number(settings.generation.max_parallel_scenes);
   const configured = Number.isFinite(requested) ? Math.min(6, Math.max(2, Math.round(requested))) : 3;
-  const limit = Number(process.env.LUMEN_SCENE_CONCURRENCY);
+  const limit = Number(process.env.KAKSHA_SCENE_CONCURRENCY);
   return Number.isFinite(limit) && limit > 0 ? Math.min(configured, Math.max(1, Math.floor(limit))) : configured;
 }
 
 async function synthesiseScene(
-  settings: LumenSettings,
+  settings: KakshaSettings,
   voice: string,
   speed: number,
   scene: Scene,
@@ -365,7 +365,7 @@ function findOutlineForSceneRow(
  * what produces endless retries. */
 function shouldEscalate(
   options: { escalation_model?: boolean },
-  settings: LumenSettings,
+  settings: KakshaSettings,
   attempts: number,
 ): boolean {
   if (attempts < 2 || options.escalation_model !== true) return false;
@@ -718,11 +718,11 @@ export async function replan(courseId: string): Promise<void> {
 
 /* --------------------------- resume after restart ------------------------- */
 
-const globalResume = globalThis as typeof globalThis & { __lumenResumed?: boolean };
+const globalResume = globalThis as typeof globalThis & { __kakshaResumed?: boolean };
 
 export async function resumePendingWork(): Promise<void> {
-  if (globalResume.__lumenResumed) return;
-  globalResume.__lumenResumed = true;
+  if (globalResume.__kakshaResumed) return;
+  globalResume.__kakshaResumed = true;
   try {
     const rows = await db.select().from(courses).where(eq(courses.status, "generating"));
     for (const row of rows) {
@@ -743,7 +743,7 @@ export async function resumePendingWork(): Promise<void> {
       await runPlanning(row.id);
     }
   } catch {
-    globalResume.__lumenResumed = false;
+    globalResume.__kakshaResumed = false;
   }
 }
 

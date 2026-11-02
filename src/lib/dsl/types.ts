@@ -1,5 +1,5 @@
 /**
- * Lumen lesson format (DSL) — version 1.
+ * Kaksha lesson format (DSL) — version 1.
  *
  * This file is the single source of truth for the shape of a course, module,
  * scene, slide, whiteboard step and quiz question. Both the generator

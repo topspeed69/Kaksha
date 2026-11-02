@@ -11,7 +11,8 @@ export type Appearance = {
 
 const Defaults: Appearance = { theme: "system", reduced_motion: false, caption_size: "lg" };
 
-const StoreKey = "lumen.appearance";
+const StoreKey = "kaksha.appearance";
+const LegacyStoreKey = "lumen.appearance";
 
 const ThemeContext = createContext<{
   appearance: Appearance;
@@ -29,7 +30,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [appearance, setAppearance] = useState<Appearance>(() => {
     if (typeof window === "undefined") return Defaults;
     try {
-      const stored = window.localStorage.getItem(StoreKey);
+      const stored =
+        window.localStorage.getItem(StoreKey) ?? window.localStorage.getItem(LegacyStoreKey);
       return stored ? { ...Defaults, ...(JSON.parse(stored) as Appearance) } : Defaults;
     } catch {
       return Defaults;

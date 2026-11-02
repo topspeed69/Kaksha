@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { audio } from "@/db/schema";
-import type { LumenSettings } from "@/server/settings";
+import type { KakshaSettings } from "@/server/settings";
 import { audioPath, ensureStorageDir } from "@/server/storage";
 import { safeFetch } from "@/server/safe-fetch";
 
@@ -323,7 +323,7 @@ export class NoSpeechProvider implements TTSProvider {
   }
 }
 
-export function ttsProviderFor(settings: LumenSettings): TTSProvider {
+export function ttsProviderFor(settings: KakshaSettings): TTSProvider {
   if (settings.tts.provider === "kokoro") {
     return new KokoroHttpProvider(
       settings.tts.base_url,

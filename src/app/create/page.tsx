@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FileText, Link as LinkIcon, Type, Upload, X } from "lucide-react";
 import type { Background, Depth } from "@/lib/dsl/types";
-import type { LumenSettings } from "@/server/settings";
+import type { KakshaSettings } from "@/server/settings";
 import { api } from "@/lib/api";
 import { playVoicePreview } from "@/lib/player/voicePreview";
 import {
@@ -80,7 +80,7 @@ export default function CreatePage() {
   });
   const defaults = useQuery({
     queryKey: ["generation-settings"],
-    queryFn: () => api.get<{ settings: LumenSettings }>("/api/settings"),
+    queryFn: () => api.get<{ settings: KakshaSettings }>("/api/settings"),
   });
   const reviewAgent = reviewOverride ?? defaults.data?.settings.generation?.review_agent_default ?? false;
   const parallelAgents = parallelOverride ?? defaults.data?.settings.generation?.parallel_agents_default ?? false;
@@ -202,7 +202,7 @@ export default function CreatePage() {
       <div className="col-span-4 lg:col-span-8">
         <h1 className="type-display text-ink">Create a new course</h1>
         <p className="type-body-lg measure mt-3 max-w-[56ch] text-muted md:mt-4">
-          Start from a document, a link, or just a topic. Lumen plans the outline first, and you can
+          Start from a document, a link, or just a topic. Kaksha plans the outline first, and you can
           edit it before any lesson is generated.
         </p>
       </div>
@@ -361,7 +361,7 @@ export default function CreatePage() {
           {!staged.length && tab === "topic" ? (
             <p className="type-body-sm mt-4 border-l border-rule pl-3 text-muted">
               With no material attached, the content comes from the model’s general knowledge and
-              should be checked. Lumen will say so on the course page.
+              should be checked. Kaksha will say so on the course page.
             </p>
           ) : null}
         </div>

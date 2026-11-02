@@ -28,7 +28,7 @@ import {
 } from "@/server/prompts";
 import { quizMixFor } from "./planner";
 import { auditSceneVisuals } from "./visual-review";
-import type { LumenSettings } from "@/server/settings";
+import type { KakshaSettings } from "@/server/settings";
 import type { DiagramSpec } from "@/lib/dsl/types";
 
 export type SourceChunk = {
@@ -40,7 +40,7 @@ export type SourceChunk = {
 };
 
 export type SceneContext = {
-  settings: LumenSettings;
+  settings: KakshaSettings;
   courseTitle: string;
   topic: string;
   depth: Depth;
@@ -952,7 +952,7 @@ export async function generateScene(ctx: SceneContext): Promise<SceneOutcome> {
           ? heuristicQuiz(ctx)
           : heuristicSlide(ctx);
     return finish(ctx, scene, [
-      "No language model is configured, so this scene was drafted by Lumen's built-in writer from your material.",
+      "No language model is configured, so this scene was drafted by Kaksha's built-in writer from your material.",
     ]);
   }
 

@@ -2,7 +2,7 @@
 
 ## One process, one contract
 
-Lumen runs as a single Next.js application. Server-only code lives in `src/server`; nothing there
+Kaksha runs as a single Next.js application. Server-only code lives in `src/server`; nothing there
 is imported by a client component. The API surface described in the product brief is implemented as
 route handlers under `src/app/api`, and generation runs as in-process background work — no queue, no
 second service.
@@ -83,7 +83,7 @@ sentences — so sync stays fine-grained.
 
 ## Security and privacy
 
-- Single-user local app. Keys are stored encrypted (AES-256-GCM, key from `LUMEN_SECRET_KEY` or a
+- Single-user local app. Keys are stored encrypted (AES-256-GCM, key from `KAKSHA_SECRET_KEY` or a
   generated file in `storage/`) and are never returned to the browser or logged.
 - URL ingestion is SSRF-guarded: the hostname is resolved and private, loopback and link-local
   ranges are refused, and redirects are re-checked. That exception is *not* applied to material.

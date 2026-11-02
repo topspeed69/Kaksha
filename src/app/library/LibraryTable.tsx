@@ -131,7 +131,7 @@ export function LibraryTable({ courses: initialCourses }: { courses: CourseSumma
     return (
       <EmptyState
         title="No courses yet"
-        body="Start from a topic, a paper, a link or your own notes. Lumen plans the outline first, so you can edit it before anything is generated."
+        body="Start from a topic, a paper, a link or your own notes. Kaksha plans the outline first, so you can edit it before anything is generated."
         action={
           <Link
             href="/create"

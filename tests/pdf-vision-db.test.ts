@@ -4,10 +4,10 @@ import { db } from "@/db";
 import { chunks, materials } from "@/db/schema";
 import { getPdfPageImage, imagesForChunks } from "@/server/ingest/pdf";
 
-const materialId = process.env.LUMEN_DB_TEST_MATERIAL_ID;
+const materialId = process.env.KAKSHA_DB_TEST_MATERIAL_ID;
 const integrationTest = materialId ? it : it.skip;
 
-describe("PDF image cache integration (opt-in: LUMEN_DB_TEST_MATERIAL_ID)", () => {
+describe("PDF image cache integration (opt-in: KAKSHA_DB_TEST_MATERIAL_ID)", () => {
   integrationTest("renders a stored page, encodes bounded JPEG, deduplicates", async () => {
     const [material] = await db.select().from(materials).where(eq(materials.id, materialId!)).limit(1);
     expect(material?.path?.endsWith(".pdf")).toBe(true);
@@ -33,13 +33,13 @@ describe("PDF image cache integration (opt-in: LUMEN_DB_TEST_MATERIAL_ID)", () =
   });
 
   integrationTest("refuses page numbers outside the configured cap", async () => {
-    const previous = process.env.LUMEN_MAX_PDF_PAGES;
-    process.env.LUMEN_MAX_PDF_PAGES = "2";
+    const previous = process.env.KAKSHA_MAX_PDF_PAGES;
+    process.env.KAKSHA_MAX_PDF_PAGES = "2";
     try {
       expect(await getPdfPageImage(materialId!, 3)).toBeNull();
     } finally {
-      if (previous === undefined) delete process.env.LUMEN_MAX_PDF_PAGES;
-      else process.env.LUMEN_MAX_PDF_PAGES = previous;
+      if (previous === undefined) delete process.env.KAKSHA_MAX_PDF_PAGES;
+      else process.env.KAKSHA_MAX_PDF_PAGES = previous;
     }
   });
 });

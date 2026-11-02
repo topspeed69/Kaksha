@@ -131,29 +131,29 @@ describe("adversarial SSRF & URL validation", () => {
     }
   });
 
-  it("enforces LUMEN_ALLOW_LOCAL_PROVIDERS=1 and always blocks cloud metadata IPs", async () => {
+  it("enforces KAKSHA_ALLOW_LOCAL_PROVIDERS=1 and always blocks cloud metadata IPs", async () => {
     expect(isMetadataIp("169.254.169.254")).toBe(true);
     expect(isMetadataIp("::ffff:169.254.169.254")).toBe(true);
     expect(isMetadataIp("fe80::1")).toBe(true);
 
-    const prev = process.env.LUMEN_ALLOW_LOCAL_PROVIDERS;
+    const prev = process.env.KAKSHA_ALLOW_LOCAL_PROVIDERS;
     try {
-      delete process.env.LUMEN_ALLOW_LOCAL_PROVIDERS;
+      delete process.env.KAKSHA_ALLOW_LOCAL_PROVIDERS;
       const blockedLocal = await checkProviderUrl("http://127.0.0.1:11434/api/chat");
       expect(blockedLocal.ok).toBe(false);
 
-      process.env.LUMEN_ALLOW_LOCAL_PROVIDERS = "1";
+      process.env.KAKSHA_ALLOW_LOCAL_PROVIDERS = "1";
       const allowedLocal = await checkProviderUrl("http://127.0.0.1:11434/api/chat");
       expect(allowedLocal.ok).toBe(true);
 
-      // Cloud metadata MUST remain blocked even when LUMEN_ALLOW_LOCAL_PROVIDERS=1
+      // Cloud metadata MUST remain blocked even when KAKSHA_ALLOW_LOCAL_PROVIDERS=1
       const metadataV4 = await checkProviderUrl("http://169.254.169.254/latest/meta-data");
       expect(metadataV4.ok).toBe(false);
       const metadataV6 = await checkProviderUrl("http://[::ffff:169.254.169.254]/latest/meta-data");
       expect(metadataV6.ok).toBe(false);
     } finally {
-      if (prev === undefined) delete process.env.LUMEN_ALLOW_LOCAL_PROVIDERS;
-      else process.env.LUMEN_ALLOW_LOCAL_PROVIDERS = prev;
+      if (prev === undefined) delete process.env.KAKSHA_ALLOW_LOCAL_PROVIDERS;
+      else process.env.KAKSHA_ALLOW_LOCAL_PROVIDERS = prev;
     }
   });
 });
@@ -526,12 +526,12 @@ describe("planner, whiteboard, grading determinism & access-code auth", () => {
   });
 
   it("verifies access codes, signed cookies and open-redirect guards", () => {
-    expect(verifySubmittedCode("lumen-2026", "lumen-2026")).toBe(true);
-    expect(verifySubmittedCode("wrong", "lumen-2026")).toBe(false);
-    const cookie = signAccessCookie("lumen-2026");
-    expect(verifyAccessCookie(cookie, "lumen-2026")).toBe(true);
+    expect(verifySubmittedCode("kaksha-2026", "kaksha-2026")).toBe(true);
+    expect(verifySubmittedCode("wrong", "kaksha-2026")).toBe(false);
+    const cookie = signAccessCookie("kaksha-2026");
+    expect(verifyAccessCookie(cookie, "kaksha-2026")).toBe(true);
     expect(verifyAccessCookie(cookie, "other-code")).toBe(false);
-    expect(verifyAccessCookie(`${cookie}x`, "lumen-2026")).toBe(false);
+    expect(verifyAccessCookie(`${cookie}x`, "kaksha-2026")).toBe(false);
 
     expect(safeRedirectPath("/courses/123/lecture")).toBe("/courses/123/lecture");
     expect(safeRedirectPath("//evil.example.com")).toBe("/library");

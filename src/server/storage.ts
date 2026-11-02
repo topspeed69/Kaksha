@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 
-const root = process.env.LUMEN_STORAGE_DIR ?? path.join(process.cwd(), "storage");
+const root = process.env.KAKSHA_STORAGE_DIR ?? path.join(process.cwd(), "storage");
 
 export const storageRoot = root;
 export const audioDir = path.join(root, "audio");

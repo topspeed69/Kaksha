@@ -59,7 +59,7 @@ One line each: decision, why.
 - **Canonical IPv6/IPv4 SSRF guard + `checkProviderUrl`.** IPv6 literals are parsed into 8 uint16
   groups so expanded loopback, IPv4-mapped (`::ffff:…`), 6to4 (`2002::/16`), NAT64 (`64:ff9b::/96`),
   unique-local and link-local ranges cannot bypass string checks. Provider URLs allow private LAN /
-  loopback only when `LUMEN_ALLOW_LOCAL_PROVIDERS=1`, and cloud metadata ranges (`169.254.0.0/16`,
+  loopback only when `KAKSHA_ALLOW_LOCAL_PROVIDERS=1`, and cloud metadata ranges (`169.254.0.0/16`,
   `fe80::/10`) are blocked unconditionally.
 - **Whitelisted, LRU-compiled MathJS plot evaluator.** `checkPlotExpression` restricts AST node
   types and depth (`<= 120` nodes) and `safeEvaluate` compiles validated expressions once into a
@@ -83,14 +83,14 @@ One line each: decision, why.
 - **Pinned-IP safe fetch.** Material and provider requests use a Node HTTP client whose DNS lookup
   revalidates addresses at connection time, closing the check-then-fetch DNS rebinding window.
 - **Reserved-region slide layout.** Inspired by OpenMAIC's separation of playback actions from a
-  dedicated slide renderer, Lumen assigns heading/math/figure/body/callout to fixed grid regions and
+  dedicated slide renderer, Kaksha assigns heading/math/figure/body/callout to fixed grid regions and
   fits each region's content, so equations, graphs and text cannot overlap.
 - **Fullscreen targets the lecture player.** The fullscreen button and F key request fullscreen on
   the stage + captions + transport container, not the whole document.
 - **Automatic browser speech fallback.** Narration defaults to `auto`: cached file audio when
   present, otherwise the browser's default English voice via speechSynthesis, with captions always
   available. Users can force browser voice or captions only.
-- **Focus camera.** Inspired by OpenMAIC's spotlight/laser-over-element-geometry model, Lumen adds a
+- **Focus camera.** Inspired by OpenMAIC's spotlight/laser-over-element-geometry model, Kaksha adds a
   camera that pans and zooms to whatever is being explained. Slide geometry is measured with
   transform-immune `offset*` properties (measuring with `getBoundingClientRect` would feed the
   camera's own transform back into its input); whiteboard geometry is precomputed from canvas

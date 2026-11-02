@@ -3,7 +3,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ---------------------------------------------------------------------------
-   Lumen design tokens — Swiss Modernism 2.0
+   Kaksha design tokens — Swiss Modernism 2.0
    Values extracted from the Stitch export (swiss_modernism_2.0/DESIGN.md).
    --------------------------------------------------------------------------- */
 :root {

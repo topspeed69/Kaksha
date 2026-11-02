@@ -45,11 +45,11 @@ export async function safeFetch(
   const kind = options.kind ?? "provider";
   const raw = typeof input === "string" ? input : input.href;
   const checked = await checkUrl(raw, {
-    allowLocalProviders: kind === "provider" && process.env.LUMEN_ALLOW_LOCAL_PROVIDERS === "1",
+    allowLocalProviders: kind === "provider" && process.env.KAKSHA_ALLOW_LOCAL_PROVIDERS === "1",
   });
   if (!checked.ok) throw new Error(checked.reason);
   const url = checked.url;
-  const allowLocal = kind === "provider" && process.env.LUMEN_ALLOW_LOCAL_PROVIDERS === "1";
+  const allowLocal = kind === "provider" && process.env.KAKSHA_ALLOW_LOCAL_PROVIDERS === "1";
 
   const pinnedLookup: LookupFunction = (hostname, lookupOptions, callback) => {
     if (isIP(hostname)) {

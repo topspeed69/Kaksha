@@ -17,7 +17,7 @@ const IMAGE_CACHE_LIMIT = 12;
 
 /** Page limit is bounded even if an env var is mistyped or maliciously huge. */
 export function maxPdfPages(): number {
-  const n = Number(process.env.LUMEN_MAX_PDF_PAGES);
+  const n = Number(process.env.KAKSHA_MAX_PDF_PAGES);
   return Number.isFinite(n) && n >= 1
     ? Math.max(1, Math.min(80, Math.floor(n)))
     : DEFAULT_MAX_PDF_PAGES;

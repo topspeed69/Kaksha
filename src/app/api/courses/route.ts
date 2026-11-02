@@ -151,7 +151,7 @@ export async function POST(request: Request) {
       // A course that fails to plan is removed entirely so no orphaned entry
       // shows up in the library. Scenes are cascade-deleted by the schema.
       await db.delete(courses).where(eq(courses.id, row.id));
-      console.error("[lumen] planning failed", (error as Error).message);
+      console.error("[kaksha] planning failed", (error as Error).message);
     });
     return ok({ id: row.id, status: "planning" }, { status: 202 });
   } catch (error) {

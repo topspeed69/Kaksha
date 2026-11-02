@@ -2,10 +2,10 @@ import type { GradeResult, Question, QuizAnswer } from "@/lib/dsl/types";
 import { generateStructured, resolveLLM } from "@/server/providers/llm";
 import { graderPrompt } from "@/server/prompts";
 import { cosine, lexicalVector } from "@/server/embeddings";
-import type { LumenSettings } from "@/server/settings";
+import type { KakshaSettings } from "@/server/settings";
 
 export type GradeInput = {
-  settings: LumenSettings;
+  settings: KakshaSettings;
   question: Question;
   answer: QuizAnswer;
   sourceExcerpt: string;

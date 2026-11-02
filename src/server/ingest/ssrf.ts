@@ -247,16 +247,16 @@ export async function checkUrl(
 
 /**
  * Validate a user-configured LLM / TTS / Embedding provider base URL.
- * Loopback and private LAN ranges are permitted ONLY when LUMEN_ALLOW_LOCAL_PROVIDERS=1;
+ * Loopback and private LAN ranges are permitted ONLY when KAKSHA_ALLOW_LOCAL_PROVIDERS=1;
  * cloud metadata ranges (169.254.0.0/16, fe80::/10) are always blocked.
  */
 export async function checkProviderUrl(raw: string): Promise<UrlCheck> {
-  const allowLocalProviders = process.env.LUMEN_ALLOW_LOCAL_PROVIDERS === "1";
+  const allowLocalProviders = process.env.KAKSHA_ALLOW_LOCAL_PROVIDERS === "1";
   const result = await checkUrl(raw, { allowLocalProviders });
   if (!result.ok && !allowLocalProviders && result.reason.includes("private")) {
     return {
       ok: false,
-      reason: `${result.reason}. Set LUMEN_ALLOW_LOCAL_PROVIDERS=1 to use local providers such as Ollama or Kokoro.`,
+      reason: `${result.reason}. Set KAKSHA_ALLOW_LOCAL_PROVIDERS=1 to use local providers such as Ollama or Kokoro.`,
     };
   }
   return result;

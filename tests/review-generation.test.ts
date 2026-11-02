@@ -210,8 +210,8 @@ describe("reviewer provider integration", () => {
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("No TCP address");
-    const previous = process.env.LUMEN_ALLOW_LOCAL_PROVIDERS;
-    process.env.LUMEN_ALLOW_LOCAL_PROVIDERS = "1";
+    const previous = process.env.KAKSHA_ALLOW_LOCAL_PROVIDERS;
+    process.env.KAKSHA_ALLOW_LOCAL_PROVIDERS = "1";
     try {
       const config = mergeSettings(DEFAULT_SETTINGS, {
         llm: { reviewer: {
@@ -227,8 +227,8 @@ describe("reviewer provider integration", () => {
         expect(result.reviewedBy).toBe("review-test-model");
       }
     } finally {
-      if (previous === undefined) delete process.env.LUMEN_ALLOW_LOCAL_PROVIDERS;
-      else process.env.LUMEN_ALLOW_LOCAL_PROVIDERS = previous;
+      if (previous === undefined) delete process.env.KAKSHA_ALLOW_LOCAL_PROVIDERS;
+      else process.env.KAKSHA_ALLOW_LOCAL_PROVIDERS = previous;
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
       );

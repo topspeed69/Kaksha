@@ -55,7 +55,7 @@ export function QuizView({
 
   // Drafts are kept in localStorage so a refresh does not lose work.
   useEffect(() => {
-    const key = `lumen.quiz.${courseId}.${scene.id}`;
+    const key = `kaksha.quiz.${courseId}.${scene.id}`;
     const timer = setTimeout(() => {
       try {
         const stored = window.localStorage.getItem(key);
@@ -78,7 +78,7 @@ export function QuizView({
           },
         };
         try {
-          const key = `lumen.quiz.${courseId}.${scene.id}`;
+          const key = `kaksha.quiz.${courseId}.${scene.id}`;
           window.localStorage.setItem(key, JSON.stringify(next));
         } catch {
           /* ignore */

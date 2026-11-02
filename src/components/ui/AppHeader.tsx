@@ -35,7 +35,7 @@ export function AppHeader() {
             href="/library"
             className={cn("type-h2 text-ink", inPlayer ? "hidden md:block" : "flex h-11 items-center md:h-auto")}
           >
-            Lumen
+            Kaksha
           </Link>
           <nav aria-label="Main" className="hidden gap-6 md:flex">
             {links.map((link) => {
@@ -121,7 +121,7 @@ export function AppFooter() {
   return (
     <footer className="mt-16 hidden border-t border-rule md:block">
       <div className="shell flex flex-col gap-2 py-6 sm:flex-row sm:items-center sm:justify-between">
-        <p className="type-body-sm text-muted">Lumen · AI classroom</p>
+        <p className="type-body-sm text-muted">Kaksha · AI classroom</p>
         <p className="type-label text-muted">Local first · your material stays on this machine</p>
       </div>
     </footer>
