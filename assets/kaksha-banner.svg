@@ -1,0 +1,148 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img" aria-label="Kaksha — AI-Native Autonomous Classroom Engine">
+  <defs>
+    <style>
+      @import url(&apos;https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap&apos;);
+      .title { font-family: &apos;Space Grotesk&apos;, system-ui, -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 700; }
+      .sans  { font-family: &apos;Space Grotesk&apos;, system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
+      .mono  { font-family: &apos;JetBrains Mono&apos;, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    </style>
+    <pattern id="swiss-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#E8E4E0" stroke-width="0.85"/>
+    </pattern>
+    <pattern id="dot-grid" width="16" height="16" patternUnits="userSpaceOnUse">
+      <circle cx="1.5" cy="1.5" r="0.9" fill="#D8D4D0"/>
+    </pattern>
+  </defs>
+<!--Background-->
+  <rect width="1280" height="640" fill="#FBF9F8"/>
+  <rect x="24" y="24" width="1232" height="494" fill="url(#swiss-grid)" opacity="0.55"/>
+  <rect x="24" y="518" width="1232" height="98" fill="url(#dot-grid)" opacity="0.4"/>
+<!--Outer frame-->
+  <rect x="24" y="24" width="1232" height="592" fill="none" stroke="#111111" stroke-width="2"/>
+<!--================= TOP METADATA BAR =================-->
+  <line x1="24" y1="72" x2="1256" y2="72" stroke="#111111" stroke-width="1.5"/>
+  <text x="48" y="52" class="mono" font-size="12" font-weight="700" fill="#111111" letter-spacing="1.4">PROJECT // KAKSHA</text>
+  <text x="248" y="52" class="mono" font-size="11" font-weight="500" fill="#6B6A69" letter-spacing="0.6">AI-NATIVE AUTONOMOUS CLASSROOM ENGINE</text>
+<!--Status + version (right-aligned, clear gap)-->
+  <text x="1232" y="53" class="mono" font-size="11" font-weight="700" fill="#111111" text-anchor="end">v0.1.2</text>
+  <g transform="translate(972, 38)">
+    <rect x="0" y="0" width="176" height="22" fill="#FFFFFF" stroke="#111111" stroke-width="1.25" rx="2"/>
+    <rect x="8" y="6" width="10" height="10" fill="#E4002B"/>
+    <text x="24" y="15.5" class="mono" font-size="10" font-weight="700" fill="#111111" letter-spacing="0.9">STATUS: RELEASE READY</text>
+  </g>
+<!--================= HERO =================-->
+<!--Category badges-->
+  <g transform="translate(48, 96)">
+    <rect x="0" y="0" width="158" height="26" fill="#111111" rx="2"/>
+    <text x="14" y="17.5" class="mono" font-size="10" font-weight="700" fill="#FFFFFF" letter-spacing="0.9">OPEN SPECIFICATION</text>
+    <rect x="170" y="0" width="186" height="26" fill="#FFFFFF" stroke="#E4002B" stroke-width="1.5" rx="2"/>
+    <circle cx="186" cy="13" r="3.5" fill="#E4002B"/>
+    <text x="196" y="17.5" class="mono" font-size="10" font-weight="700" fill="#E4002B" letter-spacing="0.8">PHYSICS &amp; STEM ENGINE</text>
+    <rect x="368" y="0" width="184" height="26" fill="#FFFFFF" stroke="#111111" stroke-width="1.5" rx="2"/>
+    <text x="382" y="17.5" class="mono" font-size="10" font-weight="700" fill="#111111" letter-spacing="0.8">INTERACTIVE WHITEBOARD</text>
+  </g>
+<!--Brand + red pillar-->
+  <g transform="translate(700, 160)">
+    <text x="195" y="68" class="title" font-size="86" fill="#111111" letter-spacing="-2.8">Kaksha</text>
+    <rect x="125" y="5" width="14" height="70" fill="#E4002B"/>
+  </g>
+<!--Tagline (right side)-->
+  <g transform="translate(48,175)">
+    <text x="0" y="0" class="sans" font-size="24" font-weight="700" fill="#111111" letter-spacing="-0.4" text-anchor="start">Turn research papers, complex PDFs &amp; topics</text>
+    <text x="0" y="32" class="sans" font-size="24" font-weight="700" fill="#111111" letter-spacing="-0.4" text-anchor="start">into step-by-step interactive whiteboard &amp;</text>
+    <text x="0" y="64" class="sans" font-size="24" font-weight="700" fill="#E4002B" letter-spacing="-0.4" text-anchor="start">lecture halls.</text>
+    <text x="0" y="108" class="sans" font-size="13" font-weight="400" fill="#5C5B5A" text-anchor="start">Rigorous MathML derivations, synchronized voice lectures,</text>
+    <text x="0" y="128" class="sans" font-size="13" font-weight="400" fill="#5C5B5A" text-anchor="start">custom audio models, and automated rubrics.</text>
+  </g>
+<!--Divider-->
+  <line x1="48" y1="328" x2="1232" y2="328" stroke="#111111" stroke-width="1.25"/>
+<!--================= 3-COLUMN FEATURE GRID =================-->
+<!--Card 1-->
+  <g transform="translate(48, 346)">
+    <rect x="0" y="0" width="380" height="154" fill="#FFFFFF" stroke="#111111" stroke-width="1.5" rx="2"/>
+    <rect x="0" y="0" width="380" height="30" fill="#111111"/>
+    <text x="14" y="19.5" class="mono" font-size="10" font-weight="700" fill="#FFFFFF" letter-spacing="1.1">01 // RIGOROUS FORMALISM</text>
+    <rect x="312" y="6" width="56" height="18" fill="#E4002B" rx="1"/>
+    <text x="321" y="18" class="mono" font-size="9" font-weight="700" fill="#FFFFFF" letter-spacing="0.6">MATHML</text>
+    <text x="16" y="54" class="sans" font-size="15.5" font-weight="700" fill="#111111">Step-by-Step Typeset Proofs</text>
+    <text x="16" y="72" class="sans" font-size="11.5" font-weight="400" fill="#5C5B5A">Textbook typography and derivation trees</text>
+    <text x="16" y="88" class="sans" font-size="11.5" font-weight="400" fill="#5C5B5A">rendered without raw LaTeX clipping.</text>
+    <rect x="16" y="100" width="348" height="40" fill="#F7F5F3" stroke="#DCD9D6" stroke-width="1" rx="2"/>
+<!--Cleaner MathML-style formula-->
+    <text x="24" y="125" class="mono" font-size="12" font-weight="600" fill="#111111">
+      ρ<tspan font-size="9" dy="2">S</tspan><tspan dy="-2">(t) = Tr</tspan><tspan font-size="9" dy="2">E</tspan><tspan dy="-2"> [ U(t) ρ(0) U</tspan><tspan font-size="9" dy="-3">†</tspan><tspan dy="3">(t) ]</tspan>
+    </text>
+    <rect x="268" y="110" width="84" height="20" fill="#FFFFFF" stroke="#111111" stroke-width="1" rx="2"/>
+    <text x="280" y="123.5" class="mono" font-size="9" font-weight="700" fill="#111111" letter-spacing="0.5">HERMITIAN</text>
+  </g>
+<!--Card 2-->
+  <g transform="translate(450, 346)">
+    <rect x="0" y="0" width="380" height="154" fill="#FFFFFF" stroke="#111111" stroke-width="1.5" rx="2"/>
+    <rect x="0" y="0" width="380" height="30" fill="#111111"/>
+    <text x="14" y="19.5" class="mono" font-size="10" font-weight="700" fill="#FFFFFF" letter-spacing="1.1">02 // PIPELINE SYNTHESIS</text>
+    <rect x="284" y="6" width="84" height="18" fill="#FFFFFF" rx="1"/>
+    <text x="294" y="18" class="mono" font-size="9" font-weight="700" fill="#111111" letter-spacing="0.5">AUTONOMOUS</text>
+    <text x="16" y="54" class="sans" font-size="15.5" font-weight="700" fill="#111111">6-Stage Lecture Pipeline</text>
+    <text x="16" y="72" class="sans" font-size="11.5" font-weight="400" fill="#5C5B5A">End-to-end pipeline from PDF ingestion</text>
+    <text x="16" y="88" class="sans" font-size="11.5" font-weight="400" fill="#5C5B5A">to scene planning and interactive rubrics.</text>
+    <g transform="translate(16, 105)">
+      <rect x="0" y="0" width="52" height="26" fill="#111111" rx="2"/>
+      <text x="8" y="17" class="mono" font-size="9" font-weight="600" fill="#FFFFFF">Ingest</text>
+      <rect x="57" y="0" width="48" height="26" fill="#111111" rx="2"/>
+      <text x="66" y="17" class="mono" font-size="9" font-weight="600" fill="#FFFFFF">Plan</text>
+      <rect x="110" y="0" width="50" height="26" fill="#111111" rx="2"/>
+      <text x="120" y="17" class="mono" font-size="9" font-weight="600" fill="#FFFFFF">Slide</text>
+      <rect x="165" y="0" width="56" height="26" fill="#E4002B" rx="2"/>
+      <text x="175" y="17" class="mono" font-size="9" font-weight="600" fill="#FFFFFF">Board</text>
+      <rect x="226" y="0" width="50" height="26" fill="#F0EEEC" stroke="#D6D3D0" stroke-width="1" rx="2"/>
+      <text x="237" y="17" class="mono" font-size="9" font-weight="600" fill="#6B6A69">Quiz</text>
+      <rect x="281" y="0" width="55" height="26" fill="#F0EEEC" stroke="#D6D3D0" stroke-width="1" rx="2"/>
+      <text x="292" y="17" class="mono" font-size="9" font-weight="600" fill="#6B6A69">Voice</text>
+    </g>
+  </g>
+<!--Card 3-->
+  <g transform="translate(852, 346)">
+    <rect x="0" y="0" width="380" height="154" fill="#FFFFFF" stroke="#111111" stroke-width="1.5" rx="2"/>
+    <rect x="0" y="0" width="380" height="30" fill="#111111"/>
+    <text x="14" y="19.5" class="mono" font-size="10" font-weight="700" fill="#FFFFFF" letter-spacing="1.1">03 // VOICE SYNTHESIS</text>
+    <rect x="308" y="6" width="60" height="18" fill="#E4002B" rx="1"/>
+    <text x="317" y="18" class="mono" font-size="9" font-weight="700" fill="#FFFFFF" letter-spacing="0.5">BYO-API</text>
+    <text x="16" y="54" class="sans" font-size="15.5" font-weight="700" fill="#111111">Your Own Voice API</text>
+    <text x="16" y="72" class="sans" font-size="11.5" font-weight="400" fill="#5C5B5A">Connect ElevenLabs, OpenAI Audio, Cartesia,</text>
+    <text x="16" y="88" class="sans" font-size="11.5" font-weight="400" fill="#5C5B5A">Kokoro, or your custom TTS endpoint.</text>
+    <rect x="16" y="100" width="348" height="40" fill="#F7F5F3" stroke="#DCD9D6" stroke-width="1" rx="2"/>
+    <text x="24" y="125" class="mono" font-size="12" font-weight="700" fill="#E4002B">POST</text>
+    <text x="62" y="125" class="mono" font-size="12" font-weight="500" fill="#111111">/v1/audio/speech (Custom Key)</text>
+    <circle cx="344" cy="120" r="4.5" fill="#00875A"/>
+  </g>
+<!--================= FOOTER =================-->
+  <line x1="24" y1="518" x2="1256" y2="518" stroke="#111111" stroke-width="1.5"/>
+<!--Col 1-->
+  <g transform="translate(48, 544)">
+    <text x="0" y="14" class="mono" font-size="10" font-weight="700" fill="#6B6A69" letter-spacing="1.1">01 // ARCHITECTURE</text>
+    <text x="0" y="38" class="sans" font-size="14" font-weight="700" fill="#111111">Typeset MathML + Whiteboard</text>
+  </g>
+  <line x1="332" y1="518" x2="332" y2="616" stroke="#111111" stroke-width="1"/>
+<!--Col 2-->
+  <g transform="translate(356, 544)">
+    <text x="0" y="14" class="mono" font-size="10" font-weight="700" fill="#6B6A69" letter-spacing="1.1">02 // INGESTION SUPPORT</text>
+    <text x="0" y="38" class="sans" font-size="14" font-weight="700" fill="#111111">PDF · ArXiv · URL · Markdown</text>
+  </g>
+  <line x1="640" y1="518" x2="640" y2="616" stroke="#111111" stroke-width="1"/>
+<!--Col 3-->
+  <g transform="translate(664, 544)">
+    <text x="0" y="14" class="mono" font-size="10" font-weight="700" fill="#6B6A69" letter-spacing="1.1">03 // AUDIO SYNTHESIS</text>
+    <text x="0" y="38" class="sans" font-size="14" font-weight="700" fill="#111111">Your Own Voice API (Custom TTS)</text>
+  </g>
+  <line x1="948" y1="518" x2="948" y2="616" stroke="#111111" stroke-width="1"/>
+<!--Col 4-->
+  <g transform="translate(972, 544)">
+    <text x="0" y="14" class="mono" font-size="10" font-weight="700" fill="#6B6A69" letter-spacing="1.1">04 // ASSESSMENT</text>
+    <text x="0" y="38" class="sans" font-size="14" font-weight="700" fill="#111111">Rubrics &amp; Quizzes</text>
+  </g>
+<!--Logo block-->
+  <g transform="translate(1160, 550)">
+    <rect x="0" y="0" width="80" height="28" fill="#111111" rx="2"/>
+    <text x="12" y="18.5" class="mono" font-size="11" font-weight="700" fill="#FFFFFF" letter-spacing="1.2">KAKSHA</text>
+  </g>
+</svg>

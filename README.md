@@ -1,14 +1,20 @@
 # Kaksha · AI classroom
 
+![Kaksha — AI classroom: a topic or document becomes a narrated, animated lecture](assets/kaksha-banner.png)
+
 Kaksha turns a topic or a document into a narrated, animated lecture: slides, a whiteboard the AI
 draws on step by step, and quizzes graded against a rubric.
+
+Further reading: [docs/architecture.md](docs/architecture.md) (how it fits together),
+[docs/providers.md](docs/providers.md) (providers, slots and encryption),
+[DECISIONS.md](DECISIONS.md) (why it works this way) and [CHANGELOG.md](CHANGELOG.md).
 
 ```
 topic / paper / link / notes
   → ingest (parse, sections, chunks, index)
   → plan (depth, time budget, background)   → you review and edit the outline
   → scenes (slide | whiteboard | quiz), validated, with one repair pass
-  → narration (Kokoro speech, cached, real durations)
+  → narration (browser voice, Kokoro speech, or an offline voice; cached, real durations)
   → one lesson document → the player
 ```
 
@@ -23,6 +29,9 @@ npm run build && npm start    # http://localhost:3000
 npm run dev
 ```
 
+Prefer containers? `docker compose up` runs the app and Postgres, and the Kokoro speech
+service joins it with `docker compose --profile kokoro up`.
+
 The first request seeds the reference course ("Quantum decoherence and the classical world"), a hand
 authored lesson with slides, a whiteboard derivation and a quiz, so there is something to play
 immediately.
@@ -34,8 +43,10 @@ immediately.
 | Default | Used whenever a task has no model of its own | any |
 | Planner | The outline and objectives | small and cheap is fine |
 | Content | Slides, whiteboard steps, quizzes | the strongest model you have |
+| Reviewer | The visual reviewer: teaching quality, sources, correctness, rendered screenshots | a vision-capable model (falls back to the default) |
 | Grader | Marks short answers and derivations | a model with structured output |
 | Tutor | Answers questions while you watch | any |
+| Escalation | Only called when a scene fails twice, with the exact failure list | a stronger model at the same provider |
 
 Providers: **OpenAI-compatible** (OpenAI, OpenRouter, DeepSeek, LM Studio, Gemini's compat endpoint,
 Ollama's `/v1`), **Anthropic**, and **Ollama native** (`/api/chat` with `format: "json"`).
@@ -48,7 +59,7 @@ drafted from your material by the built-in planner and writer, and short answers
 keyword comparison with the reference answer. Every such course says so on the plan screen, and the
 grader tells you its confidence is low. Nothing pretends to be model output.
 
-## Visual review and grading (v1.2)
+## Visual review and grading
 
 Every scene is audited by two reviewers before and after it is generated:
 
@@ -96,13 +107,21 @@ click.
 
 ## Speech
 
-* `Captions only` (default): narration is shown as captions, timed from the text at 150 words per
-  minute.
+Speech degrades instead of failing, and you pick the fallback order in Settings → 03 Speech:
+
+* `Browser voice + captions (no service)` (default): the narration plays through the browser's own
+  speech voice when one is available, with captions timed from the text at 150 words per minute.
 * `Kokoro over HTTP`: point Kaksha at a Kokoro service that exposes an OpenAI-compatible
   `/v1/audio/speech`, for example [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI)
   (`docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu`), then set the address to
   `http://127.0.0.1:8880/v1/audio/speech`. Segments are cached by content hash, so nothing is
   synthesised twice, and the real duration is read from the encoded file.
+* **Offline device voice**: when no browser voice is found (or the one that starts errors out),
+  Kaksha renders the segment with `espeak-ng` on the server — the Docker image ships it — and tells
+  you it is doing so. Nothing hangs, and the lecture keeps playing.
+
+In the player, the narration mode cycles `auto` (a generated audio file if there is one, else the
+browser voice) → `browser` → `captions`, and the status bar shows which one is active.
 
 ## Layout
 
@@ -131,6 +150,18 @@ npm run lint
   reply time you see is a real round trip.
 * **A scene failed** — the Generating screen shows the reason and a Retry button; only that scene is
   re-run.
-* **A PDF produced no text** — it is probably a scan. Kaksha tells you in the file card; run OCR
-  before uploading.
-* **Everything looks unstyled after a theme change** — reload once; the theme is stored per browser.
+* **A PDF produced little or no text** — the parser says so under the staged file ("N of M processed
+  pages have little extractable text"), because scanned pages carry no text layer. Kaksha then uses
+  the page images when a vision-capable model is configured; otherwise those pages stay empty.
+* **The theme, caption size or reduced-motion choice does not stick** — appearance is saved in this
+  browser's local storage (`kaksha.appearance`), not on the account. Switch it in Settings → 04
+  Appearance; *Match system* follows your operating system.
+
+## Screens
+
+| | |
+|---|---|
+| ![Course library](assets/course-library-white.png) | ![Create lecture](assets/create-options.png) |
+| ![Lecture plan](assets/lecture-plan.png) | ![Lecture player](assets/lecture-player-white.png) |
+| ![Whiteboard](assets/whiteboard-white.png) | ![Quiz](assets/quiz.png) |
+| ![Visual review panel](assets/slide-visual-review.png) | |
